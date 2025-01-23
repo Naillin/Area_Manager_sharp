@@ -18,11 +18,6 @@
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
-*.sln
-*.sln.iml
-*.csproj
-*.csproj.user
-*.csproj.*.user
 *.dotCover
 *.swp
 *.sdf
