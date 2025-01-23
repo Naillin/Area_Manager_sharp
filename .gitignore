@@ -1,52 +1,53 @@
-## Игнорировать файлы сборки и бинарные файлы ##
-[Bb]in/
-[Oo]bj/
-*.exe
-*.dll
-*.pdb
-*.cache
+## Игнорировать общие временные файлы и папки ##
 *.suo
 *.user
 *.userosscache
-*.nupkg
-*.msi
-*.msm
-*.msp
-
-## Игнорировать файлы Visual Studio ##
-.vs/
-*.vcxproj
-*.vcxproj.filters
-*.vcxproj.user
-*.dotCover
-*.swp
-*.sdf
-*.opensdf
-*.db
-*.log
-*.idb
-*.pch
-*.ipch
-*.ilk
-*.meta
-*.ncb
-*.vsp
-*.psess
-*.TestResult.xml
-*.tlog
-*.lastbuildstate
-*.cachefile
-*.docstates
-*.manifest
-*.spec
-*.patch
-*.diff
-*.orig
-*.rej
-*.scc
-*.vssscc
-*.vsscc
+*.sln.docstates
+*.cache
+*.ncrunchsolution
 *.vspscc
-*.vsix
-*.vspx
-*.vspxproj
+*.vssscc
+
+## Папки сборки ##
+[Bb]in/
+[Oo]bj/
+[Pp]ackages/ # Исключить пакеты NuGet (восстанавливаются автоматически)
+x64/
+x86/
+build/
+bld/
+[Dd]ebug/
+[Rr]elease/
+[Rr]eleases/
+out/
+artifacts/
+
+## Служебные файлы IDE ##
+.vs/
+.vscode/
+_ReSharper.Caches/
+*.rsuser
+*.sln.iml
+*.ide/
+
+## Файлы NuGet ##
+# Исключить файл блокировки (нужен для PackageReference)
+!packages.lock.json
+# Исключить файлы конфигурации NuGet (нужны для восстановления)
+!nuget.config
+
+## Другое ##
+*.log
+*.dotCover
+*.pidb
+*.ilk
+*.msi
+*.pdb
+*.errorlog
+appsettings.json # Если используете шаблоны конфигов (например, appsettings.Development.json)
+!appsettings*.json # Раскомментировать, если нужно сохранить базовые конфиги
+TestResults/
+[Tt]est[Rr]esult*
+*.opensdf
+*.sdf
+*.sqlite3
