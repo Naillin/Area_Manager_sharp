@@ -79,13 +79,10 @@ class Program //Убрать Console.Writeline
 		//GlobalDiagnosticsContext.Set("isLinux", isLinux.ToString().ToLower()); // Передача переменной в NLog
 
 		logger.Info($"Starting...");
-		Console.WriteLine($"Starting...");
-
 		Program program = new Program();
 		Program.initConfig();
 
 		logger.Info(Program.configTextDefault);
-		Console.WriteLine(Program.configTextDefault);
 
 		DBTools dBTools = new DBTools(Program.SQL_CONNECTION);
 		dBTools.journalMode("WAL");
@@ -96,13 +93,11 @@ class Program //Убрать Console.Writeline
 		Dictionary<int, long?> lastDataChange = new Dictionary<int, long?>();
 
 		logger.Info($"All done!");
-		Console.WriteLine($"All done!");
 
 		while (true)
 		{
 			object?[,] topics = dBTools.executeSelectTable($"SELECT ID_Topic, Latitude_Topic, Longitude_Topic, CheckTime_Topic FROM Topics;");
 			logger.Info($"Topics count: {topics.GetLength(0)}");
-			Console.WriteLine($"Topics count: {topics.GetLength(0)}");
 			for (int i = 0; i < topics.GetLength(0); i++)
 			{
 				_topicID = Convert.ToInt32(topics[i, 0]);
@@ -133,8 +128,9 @@ class Program //Убрать Console.Writeline
 						{
 							logger.Info($"Conditions met for topic {_topicID}. Calculating area points.");
 							// Вычисялем точки
-							PointsPack pointsPack = await analyzer.findArea(new Сoordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
+							PointsPack pointsPack = analyzer.findAreaGDAL(new Сoordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
 
+							// Если по каким то причинам не получилось вставить данные
 							if (program.insertAreaData(pointsPack, _topicID, true, true) == -1)
 							{
 								logger.Warn($"Topic {_topicID} does not exist in the database or was deleted. Skipping operations.");
@@ -149,7 +145,6 @@ class Program //Убрать Console.Writeline
 							dBTools.executeDelete("AreaPoints", $"where ID_Topic = {_topicID}");
 							dBTools.executeUpdate("Topics", $"CheckTime_Topic = {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", $"where ID_Topic = {_topicID}");
 							logger.Info($"Data for topic {_topicID} cleared from AreaPoints and CheckTime_Topic updated.");
-							Console.WriteLine();
 						}
 					}
 					else
@@ -159,7 +154,6 @@ class Program //Убрать Console.Writeline
 						dBTools.journalMode("WAL");
 						dBTools.executeUpdate("Topics", $"CheckTime_Topic = {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}", $"where ID_Topic = {_topicID}");
 						logger.Info($"CheckTime_Topic updated for topic {_topicID}.");
-						Console.WriteLine();
 					}
 				}
 				else
@@ -170,7 +164,6 @@ class Program //Убрать Console.Writeline
 			}
 
 			logger.Info($"Pause time.");
-			Console.WriteLine($"Pause time.");
 			await Task.Delay(60000);
 		}
 	}
@@ -253,6 +246,7 @@ class Program //Убрать Console.Writeline
 		DBTools dBTools = new DBTools(SQL_CONNECTION);
 		dBTools.journalMode("WAL");
 		int countTopic = dBTools.countRows("Topics", $"where ID_Topic = {_topicID}");
+		// Если запись не удалена на момент вставки
 		if (countTopic > 0)
 		{
 			if (deleteOld)
@@ -263,17 +257,33 @@ class Program //Убрать Console.Writeline
 			else
 			{
 				object?[,] data = dBTools.executeSelectTable($"select * from AreaPoints where ID_Topic = {_topicID};");
-				string depressionPointsNew = data[0, 2]?.ToString() + " " + depressionPoints;
-				string perimeterPointsNew = data[0, 3]?.ToString() + " " + perimeterPoints;
-				string includedPointsNew = data[0, 4]?.ToString() + " " + includedPoints;
-				List<Island>? islandsList = JsonSerializer.Deserialize<List<Island>>(data[0, 5]?.ToString());
-				if (islandsList != null)
+				string depressionPointsBuffer = data[0, 2]?.ToString() ?? string.Empty;
+				string perimeterPointsBuffer = data[0, 3]?.ToString() ?? string.Empty;
+				string includedPointsBuffer = data[0, 4]?.ToString() ?? string.Empty;
+				string islandsStr = data[0, 5]?.ToString() ?? string.Empty;
+
+				string depressionPointsNew = string.Empty;
+				if (!string.IsNullOrEmpty(depressionPointsBuffer))
+				{ depressionPointsNew = depressionPointsBuffer.Substring(1, depressionPointsBuffer.Length - 2) + ", " + depressionPoints; }
+				string perimeterPointsNew = string.Empty;
+				if (!string.IsNullOrEmpty(perimeterPointsBuffer))
+				{ perimeterPointsNew = perimeterPointsBuffer.Substring(1, perimeterPointsBuffer.Length - 2) + ", " + perimeterPoints; }
+				string includedPointsNew = string.Empty;
+				if (!string.IsNullOrEmpty(includedPointsBuffer))
+				{ includedPointsNew = includedPointsBuffer.Substring(1, includedPointsBuffer.Length - 2) + ", " + includedPoints; }
+				
+				string islandsNew = "[]";
+				if (!string.IsNullOrEmpty(islandsStr))
 				{
-					pointsPack.Islands.AddRange(islandsList);
-					//islands = JsonSerializer.Serialize(islandsList, new JsonSerializerOptions { WriteIndented = true });
+					List<Island>? islandsList = JsonSerializer.Deserialize<List<Island>>(islandsStr);
+					if (islandsList != null)
+					{
+						pointsPack.Islands.AddRange(islandsList);
+						//islandsNew = JsonSerializer.Serialize(islandsList, new JsonSerializerOptions { WriteIndented = true });
+					}
 				}
 
-				dBTools.executeUpdate("AreaPoints", [_topicID.ToString(), depressionPoints, perimeterPoints, includedPoints, islands]);
+				dBTools.executeUpdate("AreaPoints", [_topicID.ToString(), $"[{depressionPointsNew}]", $"[{perimeterPointsNew}]", $"[{includedPointsNew}]", $"[{islandsNew}]"]);
 			}
 			
 			if (updateTime)
@@ -286,9 +296,10 @@ class Program //Убрать Console.Writeline
 		}
 		else
 		{
+			// Если запись удалена на момент вставки
 			result = -1;
 		}
-
+		
 		return result;
 	}
 }
