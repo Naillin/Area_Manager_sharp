@@ -3,11 +3,13 @@ using Area_Manager_sharp.DBTools;
 using Area_Manager_sharp.ElevationAnalyzer;
 using Area_Manager_sharp.ElevationAnalyzerFolder.AreaUnits;
 using Area_Manager_sharp.MovingAverage;
+using IniParser.Model;
+using IniParser;
 using NLog;
 using NLog.Fluent;
 using System.Text.Json;
 
-class Program //Убрать Console.Writeline
+class Program
 {
 	private static readonly string moduleName = "area-manager-sharp.main";
 	private static readonly Logger baseLogger = LogManager.GetLogger(moduleName);
@@ -23,50 +25,80 @@ class Program //Убрать Console.Writeline
 	private static bool USE_INFLUX = false;
 	private static bool DEBUG_MODE = false;
 	public static string SQL_CONNECTION = "Data Source=../MQTT_Data_collector/mqtt_data.db";
-	//private string SQL_CONNECTION = "Data Source=mqtt_data.db";
-	private const string filePathConfig = "config.txt";
+	//private static string SQL_CONNECTION = "Data Source=mqtt_data.db";
+	private static bool USE_SRTM = true;
+	public static string TILES_FOLDER = "tilesFolder/";
+	//public static string TILES_FOLDER = "C:/Users/kamil/Desktop/tiles/";
+	private const string filePathConfig = "config.ini";
 
 	private static string configTextDefault = string.Empty;
 	private static void initConfig()
 	{
+		FileIniDataParser parser = new FileIniDataParser();
+
 		if (File.Exists(filePathConfig))
 		{
-			string[] linesConfig = File.ReadAllLines(filePathConfig);
-			ROUND_DIGITS = Convert.ToInt32(linesConfig[0].Split(':')[1]);
-			DISTANCE = Convert.ToDouble(linesConfig[1].Split(':')[1]);
-			DELAY = Convert.ToInt32(linesConfig[2].Split(':')[1]);
-			WINDOW_SIZE = Convert.ToDouble(linesConfig[3].Split(':')[1]);
-			SMOOTHING = Convert.ToDouble(linesConfig[4].Split(':')[1]);
-			SLOPE_FACTOR = Convert.ToDouble(linesConfig[5].Split(':')[1]);
-			EQUAL_OPTION = bool.Parse(linesConfig[6].Split(':')[1]);
-			USE_INFLUX = bool.Parse(linesConfig[7].Split(':')[1]);
-			DEBUG_MODE = bool.Parse(linesConfig[8].Split(':')[1]);
-			SQL_CONNECTION = linesConfig[9].Split(':')[1];
+			logger.Info($"Чтение конфигурационного файла.");
 
-			configTextDefault = $"ROUND_DIGITS:{ROUND_DIGITS}\r\n" +
-								$"DISTANCE:{DISTANCE}\r\n" +
-								$"DELAY:{DELAY}\r\n" +
-								$"WINDOW_SIZE:{WINDOW_SIZE}\r\n" +
-								$"SMOOTHING:{SMOOTHING}\r\n" +
-								$"SLOPE_FACTOR:{SLOPE_FACTOR}\r\n" +
-								$"EQUAL_OPTION:{EQUAL_OPTION}\r\n" +
-								$"USE_INFLUX:{USE_INFLUX}\r\n" +
-								$"DEBUG_MODE:{DEBUG_MODE}\r\n" +
-								$"SQL_CONNECTION:{SQL_CONNECTION}";
+			IniData data = parser.ReadFile(filePathConfig);
+			ROUND_DIGITS = Convert.ToInt32(data["Settings"]["ROUND_DIGITS"]);
+			DISTANCE = Convert.ToDouble(data["Settings"]["DISTANCE"]);
+			DELAY = Convert.ToInt32(data["Settings"]["DELAY"]);
+			WINDOW_SIZE = Convert.ToDouble(data["Settings"]["WINDOW_SIZE"]);
+			SMOOTHING = Convert.ToDouble(data["Settings"]["SMOOTHING"]);
+			SLOPE_FACTOR = Convert.ToDouble(data["Settings"]["SLOPE_FACTOR"]);
+			EQUAL_OPTION = bool.Parse(data["Settings"]["EQUAL_OPTION"]);
+			USE_INFLUX = bool.Parse(data["Settings"]["USE_INFLUX"]);
+			DEBUG_MODE = bool.Parse(data["Settings"]["DEBUG_MODE"]);
+			SQL_CONNECTION = data["Settings"]["SQL_CONNECTION"];
+			USE_SRTM = bool.Parse(data["Settings"]["USE_SRTM"]);
+			TILES_FOLDER = data["Settings"]["TILES_FOLDER"];
+
+			configTextDefault = $"ROUND_DIGITS = [{ROUND_DIGITS}]\r\n" +
+								$"DISTANCE = [{DISTANCE}]\r\n" +
+								$"DELAY = [{DELAY}]\r\n" +
+								$"WINDOW_SIZE = [{WINDOW_SIZE}]\r\n" +
+								$"SMOOTHING = [{SMOOTHING}]\r\n" +
+								$"SLOPE_FACTOR = [{SLOPE_FACTOR}]\r\n" +
+								$"EQUAL_OPTION = [{EQUAL_OPTION}]\r\n" +
+								$"USE_INFLUX = [{USE_INFLUX}]\r\n" +
+								$"DEBUG_MODE = [{DEBUG_MODE}]\r\n" +
+								$"SQL_CONNECTION = [{SQL_CONNECTION}]\r\n" +
+								$"USE_SRTM = [{USE_SRTM}]\r\n" +
+								$"TILES_FOLDER = [{TILES_FOLDER}]";
 		}
 		else
 		{
-			configTextDefault = $"ROUND_DIGITS:{ROUND_DIGITS}\r\n" +
-								$"DISTANCE:{DISTANCE}\r\n" +
-								$"DELAY:{DELAY}\r\n" +
-								$"WINDOW_SIZE:{WINDOW_SIZE}\r\n" +
-								$"SMOOTHING:{SMOOTHING}\r\n" +
-								$"SLOPE_FACTOR:{SLOPE_FACTOR}\r\n" +
-								$"EQUAL_OPTION:{EQUAL_OPTION}\r\n" +
-								$"USE_INFLUX:{USE_INFLUX}\r\n" +
-								$"DEBUG_MODE:{DEBUG_MODE}\r\n" +
-								$"SQL_CONNECTION:{SQL_CONNECTION}";
-			File.WriteAllText(filePathConfig, configTextDefault);
+			logger.Info($"Создание конфигурационного файла.");
+
+			IniData data = new IniData();
+			data.Sections.AddSection("Settings");
+			data["Settings"]["ROUND_DIGITS"] = ROUND_DIGITS.ToString();
+			data["Settings"]["DISTANCE"] = DISTANCE.ToString();
+			data["Settings"]["DELAY"] = DELAY.ToString();
+			data["Settings"]["WINDOW_SIZE"] = WINDOW_SIZE.ToString();
+			data["Settings"]["SMOOTHING"] = SMOOTHING.ToString();
+			data["Settings"]["SLOPE_FACTOR"] = SLOPE_FACTOR.ToString();
+			data["Settings"]["EQUAL_OPTION"] = EQUAL_OPTION.ToString();
+			data["Settings"]["USE_INFLUX"] = USE_INFLUX.ToString();
+			data["Settings"]["DEBUG_MODE"] = DEBUG_MODE.ToString();
+			data["Settings"]["SQL_CONNECTION"] = SQL_CONNECTION.ToString();
+			data["Settings"]["USE_SRTM"] = USE_SRTM.ToString();
+			data["Settings"]["TILES_FOLDER"] = TILES_FOLDER.ToString();
+			parser.WriteFile(filePathConfig, data);
+
+			configTextDefault = $"ROUND_DIGITS = [{ROUND_DIGITS}]\r\n" +
+								$"DISTANCE = [{DISTANCE}]\r\n" +
+								$"DELAY = [{DELAY}]\r\n" +
+								$"WINDOW_SIZE = [{WINDOW_SIZE}]\r\n" +
+								$"SMOOTHING = [{SMOOTHING}]\r\n" +
+								$"SLOPE_FACTOR = [{SLOPE_FACTOR}]\r\n" +
+								$"EQUAL_OPTION = [{EQUAL_OPTION}]\r\n" +
+								$"USE_INFLUX = [{USE_INFLUX}]\r\n" +
+								$"DEBUG_MODE = [{DEBUG_MODE}]\r\n" +
+								$"SQL_CONNECTION = [{SQL_CONNECTION}]\r\n" +
+								$"USE_SRTM = [{USE_SRTM}]\r\n" +
+								$"TILES_FOLDER = [{TILES_FOLDER}]";
 		}
 	}
 
@@ -128,8 +160,16 @@ class Program //Убрать Console.Writeline
 						{
 							logger.Info($"Conditions met for topic {_topicID}. Calculating area points.");
 							// Вычисялем точки
-							PointsPack pointsPack = analyzer.findAreaGDAL(new Сoordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
-
+							PointsPack pointsPack;
+							if (USE_SRTM)
+							{
+								pointsPack = analyzer.findAreaGDAL(new Сoordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
+							}
+							else
+							{
+								pointsPack = await analyzer.findArea(new Сoordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
+							}
+							
 							// Если по каким то причинам не получилось вставить данные
 							if (program.insertAreaData(pointsPack, _topicID, true, true) == -1)
 							{

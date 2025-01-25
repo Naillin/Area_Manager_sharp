@@ -24,8 +24,15 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 			_geoTransform = new double[6];
 			_dataset.GetGeoTransform(_geoTransform); // Получаем гео-трансформацию
 
+			//// Инициализация преобразования координат
+			//SpatialReference srcSrs = new SpatialReference(_dataset.GetProjection()); // Пространственная система координат файла
+			//SpatialReference dstSrs = new SpatialReference("");
+			//dstSrs.ImportFromEPSG(4326); // WGS84 (широта/долгота)
+
 			// Инициализация преобразования координат
-			SpatialReference srcSrs = new SpatialReference(_dataset.GetProjection()); // Пространственная система координат файла
+			SpatialReference srcSrs = new SpatialReference("");
+			srcSrs.ImportFromEPSG(4326); // Явно указываем WGS84
+
 			SpatialReference dstSrs = new SpatialReference("");
 			dstSrs.ImportFromEPSG(4326); // WGS84 (широта/долгота)
 			_transform = new CoordinateTransformation(dstSrs, srcSrs);
@@ -55,27 +62,45 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 		}
 
 		// Получение высоты по координатам (широта, долгота)
-		public double GetElevation(double lat, double lon)
+		public double GetElevation(double lat, double lon, bool transform = false)
 		{
 			try
 			{
-				double[] transformPoint = new double[3];
-				_transform.TransformPoint(transformPoint, lon, lat, 0); // Преобразование координат
+				if (transform)
+				{
+					double[] transformPoint = new double[3];
+					_transform.TransformPoint(transformPoint, lon, lat, 0); // Преобразование координат
 
-				double x = transformPoint[0];
-				double y = transformPoint[1];
+					double x = transformPoint[0];
+					double y = transformPoint[1];
 
-				// Перевод координат в пиксели
-				double u = x - _invGeoTransform[0];
-				double v = y - _invGeoTransform[3];
-				int xpix = (int)(_invGeoTransform[1] * u + _invGeoTransform[2] * v);
-				int ylin = (int)(_invGeoTransform[4] * u + _invGeoTransform[5] * v);
+					// Перевод координат в пиксели
+					double u = x - _invGeoTransform[0];
+					double v = y - _invGeoTransform[3];
+					int xpix = (int)(_invGeoTransform[1] * u + _invGeoTransform[2] * v);
+					int ylin = (int)(_invGeoTransform[4] * u + _invGeoTransform[5] * v);
 
-				// Чтение значения высоты
-				double[] buf = new double[1];
-				_band.ReadRaster(xpix, ylin, 1, 1, buf, 1, 1, 0, 0);
+					// Чтение значения высоты
+					double[] buf = new double[1];
+					_band.ReadRaster(xpix, ylin, 1, 1, buf, 1, 1, 0, 0);
 
-				return buf[0] == -32768 ? SeaLevel : buf[0]; // Возвращаем высоту или уровень моря
+					return buf[0] == -32768 ? SeaLevel : buf[0]; // Возвращаем высоту или уровень моря
+				}
+				else
+				{
+					// Перевод координат (широта/долгота) в пиксели
+					double u = lon - _invGeoTransform[0];
+					double v = lat - _invGeoTransform[3];
+					int xpix = (int)(_invGeoTransform[1] * u + _invGeoTransform[2] * v);
+					int ylin = (int)(_invGeoTransform[4] * u + _invGeoTransform[5] * v);
+
+					// Чтение значения высоты
+					double[] buf = new double[1];
+					_band.ReadRaster(xpix, ylin, 1, 1, buf, 1, 1, 0, 0);
+
+					return buf[0] == -32768 ? SeaLevel : buf[0]; // Возвращаем высоту или уровень моря
+				}
+				
 			}
 			catch
 			{

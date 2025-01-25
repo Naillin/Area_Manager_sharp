@@ -36,7 +36,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 		{
 			_delay = delay;
 			_maxAttempts = maxAttempts;
-			_gDAL = new GDALTileManager();
+			_gDAL = new GDALTileManager(Program.TILES_FOLDER, $"{Program.TILES_FOLDER}/summaryFile.json");
 			_httpClient = new HttpClient();
 			_httpClient.Timeout = TimeSpan.FromSeconds(10);
 			_debug = debug;
