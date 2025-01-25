@@ -1,7 +1,6 @@
 ﻿using Area_Manager_sharp.ElevationAnalyzerFolder.AreaUnits;
 using Area_Manager_sharp.GDALAnalyzerFolder;
 using NLog;
-using OSGeo.GDAL;
 using System.Text.Json;
 
 namespace Area_Manager_sharp.ElevationAnalyzer
@@ -28,7 +27,8 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 		private int _delay = 1000;
 		private int _maxAttempts = 3;
-		private GDALTileManager _gDAL;
+		//private GDALTileManager _gDAL;
+		private GDALPython _gDALPython;
 		private readonly HttpClient _httpClient;
 		bool _debug = false;
 
@@ -36,7 +36,8 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 		{
 			_delay = delay;
 			_maxAttempts = maxAttempts;
-			_gDAL = new GDALTileManager(Program.TILES_FOLDER, $"{Program.TILES_FOLDER}/summaryFile.json");
+			//_gDAL = new GDALTileManager(Program.TILES_FOLDER, $"{Program.TILES_FOLDER}/summaryFile.json");
+			_gDALPython = new GDALPython();
 			_httpClient = new HttpClient();
 			_httpClient.Timeout = TimeSpan.FromSeconds(10);
 			_debug = debug;
@@ -50,7 +51,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			double longitude = coordinate.Longitude;
 			string url = $"https://api.open-elevation.com/api/v1/lookup?locations={latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)},{longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
-			double result = -1;
+			double result = -32768;
 			int attempt = 0;
 
 			while (attempt < _maxAttempts)
@@ -270,7 +271,8 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 			try
 			{
-				result = _gDAL.GetElevation(latitude, longitude);
+				//result = _gDAL.GetElevation(latitude, longitude);
+				result = _gDALPython.GetElevation(coordinate);
 				logger.Info($"Высота точки {latitude}, {longitude}: {result}.");
 			}
 			catch (Exception ex)
@@ -307,6 +309,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				comparison = (a, b) => a < b; // Используем оператор <
 			}
 
+			_gDALPython.StartPythonProcess();
 			while (pointsToCheck.Count != 0)
 			{
 				CheckPoint checkPoint = pointsToCheck.Dequeue(); // Берем первый элемент и удаляем его
@@ -317,6 +320,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				}
 				checkedPoints.Add(checkPoint._сoordinate);
 
+				//double currentElevation = GetElevationGDAL(checkPoint._сoordinate);
 				double currentElevation = GetElevationGDAL(checkPoint._сoordinate);
 				logger.Info($"Высота проверяемой точки: {checkPoint._height}.");
 				double modedElevation = currentElevation;
@@ -350,6 +354,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 					program.insertAreaData(resultDebug, Program.TopicID, false, true);
 				}
 			}
+			_gDALPython.StopPythonProcess();
 
 			foreach (Сoordinate point in depressionPoints)
 			{

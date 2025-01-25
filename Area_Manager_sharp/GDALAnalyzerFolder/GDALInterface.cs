@@ -100,7 +100,7 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 
 					return buf[0] == -32768 ? SeaLevel : buf[0]; // Возвращаем высоту или уровень моря
 				}
-				
+
 			}
 			catch
 			{

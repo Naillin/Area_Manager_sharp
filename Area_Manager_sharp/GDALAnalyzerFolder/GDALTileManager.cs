@@ -71,7 +71,7 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 				lon >= t.MinLon && lon <= t.MaxLon))
 			{
 				var gdal = _cache.Get(tile.Path, p => new GDALInterface(p)); // Используем кэш
-				double elevation = gdal.GetElevation(lat, lon, false);
+				double elevation = gdal.GetElevation(lat, lon);
 				if (Math.Abs(elevation - GDALInterface.SeaLevel) > 0.001)
 					return elevation;
 			}
