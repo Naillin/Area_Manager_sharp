@@ -1,26 +1,36 @@
 ﻿using Area_Manager_sharp.ElevationAnalyzer;
+using NLog;
 using System.Diagnostics;
 using System.Globalization;
-using System.Reflection.PortableExecutable;
 
 namespace Area_Manager_sharp.GDALAnalyzerFolder
 {
 	internal class GDALPython
 	{
+		private static readonly string moduleName = "area-manager-sharp.GDALPython";
+		private static readonly Logger baseLogger = LogManager.GetLogger(moduleName);
+		private static readonly LoggerManager logger = new LoggerManager(baseLogger, moduleName);
+
+		private string _pythonPath = "GDALPython/venv/bin/python3";
+		private string _scriptPath = "GDALPython/main.py";
+		private string _fifoToPython = "GDALPython/tmp/csharp_to_python";  // FIFO для отправки данных в Python
+		private string _fifoFromPython = "GDALPython/tmp/python_to_csharp";  // FIFO для получения данных из Python
+
+		public GDALPython(string pythonPath, string scriptPath)
+		{
+			_pythonPath = pythonPath;
+			_scriptPath = scriptPath;
+		}
+
 		private Process? pythonProcess;
-		private StreamWriter? writer;
-		private StreamReader? reader;
-		private StreamReader? errorReader;
 
 		public void StartPythonProcess()
 		{
-			string pythonPath = "/GDALPython/venv/bin/python3";
-			string scriptPath = "/GDALPython/main.py";
-
+			// Запуск Python-скрипта
 			ProcessStartInfo start = new ProcessStartInfo
 			{
-				FileName = pythonPath,
-				Arguments = scriptPath,
+				FileName = _pythonPath,
+				Arguments = _scriptPath,
 				UseShellExecute = false,
 				RedirectStandardInput = true,
 				RedirectStandardOutput = true,
@@ -29,44 +39,46 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 			};
 
 			pythonProcess = Process.Start(start);
-			if (pythonProcess != null)
-			{
-				writer = pythonProcess.StandardInput;
-				reader = pythonProcess.StandardOutput;
-				errorReader = pythonProcess.StandardError;
-			}
+			logger.Info("Python started.");
 		}
 
 		public double GetElevation(Сoordinate coordinate)
 		{
 			double result = -32768;
 
-			if (writer == null || reader == null || errorReader == null)
+			try
 			{
-				throw new InvalidOperationException("Python process is not started.");
-			}
+				// Отправка координат в Python через FIFO
+				using (var writer = new StreamWriter(_fifoToPython))
+				{
+					string coordinates = $"{coordinate.Latitude.ToString(CultureInfo.InvariantCulture)},{coordinate.Longitude.ToString(CultureInfo.InvariantCulture)}";
+					writer.WriteLine(coordinates);
+					logger.Info("Coordinates sent to Python.");
+				}
 
-			string coordinates = $"{coordinate.Latitude.ToString(CultureInfo.InvariantCulture)},{coordinate.Longitude.ToString(CultureInfo.InvariantCulture)}";
-			writer.WriteLine(coordinates);
+				// Чтение результата из FIFO
+				using (var reader = new StreamReader(_fifoFromPython))
+				{
+					string? resultStr = reader.ReadLine();
+					logger.Info("Elevation received from Python.");
 
-			string? resultStr = reader.ReadLine();
-			if (resultStr == null || resultStr == "NULL")
-			{
-				result = -32768;
+					if (resultStr == null || resultStr == "NULL")
+					{
+						result = -32768;
+					}
+					else if (resultStr.StartsWith("ERROR:"))
+					{
+						result = -32768;
+					}
+					else
+					{
+						result = Convert.ToDouble(resultStr);
+					}
+				}
 			}
-			else if (resultStr.StartsWith("ERROR:"))
+			catch (Exception ex)
 			{
-				result = -32768;
-			}
-			else
-			{
-				result = Convert.ToDouble(resultStr);
-			}
-
-			string errors = errorReader.ReadToEnd();
-			if (!string.IsNullOrEmpty(errors))
-			{
-				Console.WriteLine("Errors: " + errors);
+				logger.Error($"Error in GetElevation: {ex.Message}");
 			}
 
 			return result;
@@ -74,14 +86,15 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 
 		public void StopPythonProcess()
 		{
-			if (writer != null)
+			// Отправка команды EXIT в Python через FIFO
+			using (var writer = new StreamWriter(_fifoToPython))
 			{
-				writer.WriteLine("EXIT");  // Отправляем команду для завершения работы
-				writer.Close();
+				writer.WriteLine("EXIT");
 			}
-			reader?.Close();
-			errorReader?.Close();
+
+			pythonProcess?.WaitForExit();  // Ожидание завершения Python-процесса
 			pythonProcess?.Close();
+			logger.Info("Python stopped.");
 		}
 	}
 }

@@ -17,4 +17,13 @@
     <PackageReference Include="NLog" Version="5.3.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="GDALPython\main.py">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="GDALPython\requirements.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

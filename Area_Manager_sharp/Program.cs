@@ -28,6 +28,8 @@ class Program
 	//private static string SQL_CONNECTION = "Data Source=mqtt_data.db";
 	private static bool USE_SRTM = true;
 	public static string TILES_FOLDER = "tilesFolder/";
+	public static string GDAL_PYTHON = "GDALPython/venv/bin/python3";
+	public static string GDAL_PYSCRIPT = "GDALPython/main.py";
 	//public static string TILES_FOLDER = "C:/Users/kamil/Desktop/tiles/";
 	private const string filePathConfig = "config.ini";
 
@@ -53,19 +55,8 @@ class Program
 			SQL_CONNECTION = data["Settings"]["SQL_CONNECTION"];
 			USE_SRTM = bool.Parse(data["Settings"]["USE_SRTM"]);
 			TILES_FOLDER = data["Settings"]["TILES_FOLDER"];
-
-			configTextDefault = $"ROUND_DIGITS = [{ROUND_DIGITS}]\r\n" +
-								$"DISTANCE = [{DISTANCE}]\r\n" +
-								$"DELAY = [{DELAY}]\r\n" +
-								$"WINDOW_SIZE = [{WINDOW_SIZE}]\r\n" +
-								$"SMOOTHING = [{SMOOTHING}]\r\n" +
-								$"SLOPE_FACTOR = [{SLOPE_FACTOR}]\r\n" +
-								$"EQUAL_OPTION = [{EQUAL_OPTION}]\r\n" +
-								$"USE_INFLUX = [{USE_INFLUX}]\r\n" +
-								$"DEBUG_MODE = [{DEBUG_MODE}]\r\n" +
-								$"SQL_CONNECTION = [{SQL_CONNECTION}]\r\n" +
-								$"USE_SRTM = [{USE_SRTM}]\r\n" +
-								$"TILES_FOLDER = [{TILES_FOLDER}]";
+			GDAL_PYTHON = data["Settings"]["GDAL_PYTHON"];
+			GDAL_PYSCRIPT = data["Settings"]["GDAL_PYSCRIPT"];
 		}
 		else
 		{
@@ -85,9 +76,12 @@ class Program
 			data["Settings"]["SQL_CONNECTION"] = SQL_CONNECTION.ToString();
 			data["Settings"]["USE_SRTM"] = USE_SRTM.ToString();
 			data["Settings"]["TILES_FOLDER"] = TILES_FOLDER.ToString();
+			data["Settings"]["GDAL_PYTHON"] = GDAL_PYTHON.ToString();
+			data["Settings"]["GDAL_PYSCRIPT"] = GDAL_PYSCRIPT.ToString();
 			parser.WriteFile(filePathConfig, data);
+		}
 
-			configTextDefault = $"ROUND_DIGITS = [{ROUND_DIGITS}]\r\n" +
+		configTextDefault = $"ROUND_DIGITS = [{ROUND_DIGITS}]\r\n" +
 								$"DISTANCE = [{DISTANCE}]\r\n" +
 								$"DELAY = [{DELAY}]\r\n" +
 								$"WINDOW_SIZE = [{WINDOW_SIZE}]\r\n" +
@@ -98,8 +92,9 @@ class Program
 								$"DEBUG_MODE = [{DEBUG_MODE}]\r\n" +
 								$"SQL_CONNECTION = [{SQL_CONNECTION}]\r\n" +
 								$"USE_SRTM = [{USE_SRTM}]\r\n" +
-								$"TILES_FOLDER = [{TILES_FOLDER}]";
-		}
+								$"TILES_FOLDER = [{TILES_FOLDER}]\r\n" +
+								$"GDAL_PYTHON = [{GDAL_PYTHON}]\r\n" +
+								$"GDAL_PYSCRIPT = [{GDAL_PYSCRIPT}]";
 	}
 
 	private static int _topicID = 0;
@@ -137,9 +132,14 @@ class Program
 				double longitude = Convert.ToDouble(topics[i, 2]);
 				object? checkTime = topics[i, 3];
 				DateTime checkTimeDT = DateTime.Now;
-				if (checkTime != null)
+				if (checkTime != null && long.TryParse(checkTime.ToString(), out long unixTime))
 				{
-					checkTimeDT = DateTimeOffset.FromUnixTimeSeconds((long)checkTime).DateTime;
+					checkTimeDT = DateTimeOffset.FromUnixTimeSeconds(unixTime).DateTime;
+				}
+				else
+				{
+					// Если checkTime равен null или не может быть преобразован в long, используем текущее время
+					checkTimeDT = DateTime.Now;
 				}
 				logger.Info($"Checking topic {_topicID}");
 
