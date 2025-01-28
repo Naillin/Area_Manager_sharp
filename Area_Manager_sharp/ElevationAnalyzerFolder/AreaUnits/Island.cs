@@ -5,9 +5,9 @@ namespace Area_Manager_sharp.ElevationAnalyzerFolder.AreaUnits
 	internal class Island
 	{
 		public int ID { get; set; }
-		public List<Сoordinate> Coords = new List<Сoordinate>();
+		public List<Coordinate> Coords = new List<Coordinate>();
 
-		public Island(int ID, List<Сoordinate> Coords)
+		public Island(int ID, List<Coordinate> Coords)
 		{
 			this.ID = ID;
 			this.Coords = Coords;

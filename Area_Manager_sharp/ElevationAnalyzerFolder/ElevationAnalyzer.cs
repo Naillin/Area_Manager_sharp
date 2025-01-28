@@ -21,7 +21,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 	internal class ElevationAnalyzer
 	{
-		private static readonly string moduleName = "area-manager-sharp.ElevationAnalyzer";
+		private static readonly string moduleName = "ElevationAnalyzer";
 		private static readonly Logger baseLogger = LogManager.GetLogger(moduleName);
 		private static readonly LoggerManager logger = new LoggerManager(baseLogger, moduleName);
 
@@ -45,7 +45,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 		int countAPI = 0;
 
-		private async Task<double> GetElevationAsync(Сoordinate coordinate)
+		private async Task<double> GetElevationAsync(Coordinate coordinate)
 		{
 			double latitude = coordinate.Latitude;
 			double longitude = coordinate.Longitude;
@@ -90,12 +90,12 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			return result;
 		}
 
-		private List<Сoordinate> getNeighbors(Сoordinate coordinate, double distance = 200)
+		private List<Coordinate> getNeighbors(Coordinate coordinate, double distance = 200)
 		{
 			double latitude = coordinate.Latitude;
 			double longitude = coordinate.Longitude;
 
-			List<Сoordinate> result = new List<Сoordinate>();
+			List<Coordinate> result = new List<Coordinate>();
 
 			for (int dLat = -1; dLat < 2; dLat++)
 			{
@@ -107,14 +107,14 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 					double latInRadians = latitude * Math.PI / 180;
 					double newLon = longitude + dLon * (distance / (111320 * Math.Cos(latInRadians)));
 
-					result.Add(new Сoordinate(newLat, newLon));
+					result.Add(new Coordinate(newLat, newLon));
 				}
 			}
 
 			return result;
 		}
 
-		private bool areNeighbors(Сoordinate coordinate1, Сoordinate coordinate2, double checkDistance = 200)
+		private bool areNeighbors(Coordinate coordinate1, Coordinate coordinate2, double checkDistance = 200)
 		{
 			double latitude1 = coordinate1.Latitude;
 			double longitude1 = coordinate1.Longitude;
@@ -127,10 +127,10 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 		private struct CheckPoint
 		{
-			public Сoordinate _сoordinate;
+			public Coordinate _сoordinate;
 			public double _height;
 
-			public CheckPoint (Сoordinate сoordinate, double height)
+			public CheckPoint (Coordinate сoordinate, double height)
 			{
 				this._сoordinate = сoordinate;
 				this._height = height;
@@ -139,17 +139,17 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 		// делегат для оператора сравнения
 		public delegate bool ComparisonOperator(double a, double b);
-		public async Task<PointsPack> findArea(Сoordinate coordinate, double initialHeight = 200, double distance = 200, bool equalOption = false, bool useInflux = false)
+		public async Task<PointsPack> findArea(Coordinate coordinate, double initialHeight = 200, double distance = 200, bool equalOption = false, bool useInflux = false)
 		{
-			List<Сoordinate> depressionPoints = new List<Сoordinate>();
-			List<Сoordinate> perimeterPoints = new List<Сoordinate>();
-			List<Сoordinate> includedPoints = new List<Сoordinate>();
-			List<Сoordinate> nonFloodedPoints = new List<Сoordinate>();
+			List<Coordinate> depressionPoints = new List<Coordinate>();
+			List<Coordinate> perimeterPoints = new List<Coordinate>();
+			List<Coordinate> includedPoints = new List<Coordinate>();
+			List<Coordinate> nonFloodedPoints = new List<Coordinate>();
 			List<Island> islands = new List<Island>();
 			int islandID = 0;
 
 			Queue<CheckPoint> pointsToCheck = new Queue<CheckPoint>();
-			List<Сoordinate> checkedPoints = new List<Сoordinate>();
+			HashSet<Coordinate> checkedPoints = new HashSet<Coordinate>();
 			pointsToCheck.Enqueue(new CheckPoint(coordinate, initialHeight));
 
 			Program program = new Program();
@@ -186,8 +186,8 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				if (comparison(currentElevation, checkPoint._height))
 				{
 					depressionPoints.Add(checkPoint._сoordinate);
-					List<Сoordinate> neighbors = getNeighbors(checkPoint._сoordinate, distance);
-					foreach (Сoordinate neighbor in neighbors)
+					List<Coordinate> neighbors = getNeighbors(checkPoint._сoordinate, distance);
+					foreach (Coordinate neighbor in neighbors)
 					{
 						if (!checkedPoints.Contains(neighbor))
 						{
@@ -210,12 +210,12 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				}
 			}
 
-			foreach (Сoordinate point in depressionPoints)
+			foreach (Coordinate point in depressionPoints)
 			{
-				List<Сoordinate> neighbors = getNeighbors(point, distance);
+				List<Coordinate> neighbors = getNeighbors(point, distance);
 
 				bool hasNonFloodedNeighbor = false;
-				foreach (Сoordinate neighbor in neighbors)
+				foreach (Coordinate neighbor in neighbors)
 				{
 					if (!depressionPoints.Contains(neighbor))
 					{
@@ -246,7 +246,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 					else
 					{
 						// Если остров не найден, создаем новый
-						existingIsland = new Island(islandID, new List<Сoordinate> { point });
+						existingIsland = new Island(islandID, new List<Coordinate> { point });
 						islands.Add(existingIsland);
 						islandID++;
 					}
@@ -262,7 +262,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			return result;
 		}
 
-		private double GetElevationGDAL(Сoordinate coordinate)
+		private double GetElevationGDAL(Coordinate coordinate)
 		{
 			double latitude = coordinate.Latitude;
 			double longitude = coordinate.Longitude;
@@ -283,17 +283,17 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			return result;
 		}
 
-		public PointsPack findAreaGDAL(Сoordinate coordinate, double initialHeight = 200, double distance = 200, bool equalOption = false, bool useInflux = false)
+		public PointsPack findAreaGDAL(Coordinate coordinate, double initialHeight = 200, double distance = 200, bool equalOption = false, bool useInflux = false)
 		{
-			List<Сoordinate> depressionPoints = new List<Сoordinate>();
-			List<Сoordinate> perimeterPoints = new List<Сoordinate>();
-			List<Сoordinate> includedPoints = new List<Сoordinate>();
-			List<Сoordinate> nonFloodedPoints = new List<Сoordinate>();
+			List<Coordinate> depressionPoints = new List<Coordinate>();
+			List<Coordinate> perimeterPoints = new List<Coordinate>();
+			List<Coordinate> includedPoints = new List<Coordinate>();
+			List<Coordinate> nonFloodedPoints = new List<Coordinate>();
 			List<Island> islands = new List<Island>();
 			int islandID = 0;
 
 			Queue<CheckPoint> pointsToCheck = new Queue<CheckPoint>();
-			List<Сoordinate> checkedPoints = new List<Сoordinate>();
+			HashSet<Coordinate> checkedPoints = new HashSet<Coordinate>();
 			pointsToCheck.Enqueue(new CheckPoint(coordinate, initialHeight));
 
 			Program program = new Program();
@@ -314,7 +314,17 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			{
 				CheckPoint checkPoint = pointsToCheck.Dequeue(); // Берем первый элемент и удаляем его
 
-				if (checkedPoints.Contains(checkPoint._сoordinate))
+				bool continueCoord = false;
+				foreach (Coordinate сoord in checkedPoints)
+				{
+					if (checkPoint._сoordinate.Latitude == сoord.Latitude &&
+						checkPoint._сoordinate.Longitude == сoord.Longitude)
+					{
+						continueCoord = true;
+						break;
+					}
+				}
+				if (continueCoord || checkedPoints.Contains(checkPoint._сoordinate))
 				{
 					continue;
 				}
@@ -332,8 +342,8 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				if (comparison(currentElevation, checkPoint._height))
 				{
 					depressionPoints.Add(checkPoint._сoordinate);
-					List<Сoordinate> neighbors = getNeighbors(checkPoint._сoordinate, distance);
-					foreach (Сoordinate neighbor in neighbors)
+					List<Coordinate> neighbors = getNeighbors(checkPoint._сoordinate, distance);
+					foreach (Coordinate neighbor in neighbors)
 					{
 						if (!checkedPoints.Contains(neighbor))
 						{
@@ -348,20 +358,21 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				}
 				logger.Info($"Количество точек для проверки: {pointsToCheck.Count}.");
 
-				if (_debug && countDebug >= 10)
+				if (_debug && countDebug >= 50)
 				{
 					PointsPack resultDebug = new PointsPack(depressionPoints, perimeterPoints, includedPoints, islands);
-					program.insertAreaData(resultDebug, Program.TopicID, false, true);
+					program.insertAreaData(resultDebug, Program.TopicID, true, true);
+					countDebug = 0;
 				}
 			}
 			_gDALPython.StopPythonProcess();
 
-			foreach (Сoordinate point in depressionPoints)
+			foreach (Coordinate point in depressionPoints)
 			{
-				List<Сoordinate> neighbors = getNeighbors(point, distance);
+				List<Coordinate> neighbors = getNeighbors(point, distance);
 
 				bool hasNonFloodedNeighbor = false;
-				foreach (Сoordinate neighbor in neighbors)
+				foreach (Coordinate neighbor in neighbors)
 				{
 					if (!depressionPoints.Contains(neighbor))
 					{
@@ -392,7 +403,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 					else
 					{
 						// Если остров не найден, создаем новый
-						existingIsland = new Island(islandID, new List<Сoordinate> { point });
+						existingIsland = new Island(islandID, new List<Coordinate> { point });
 						islands.Add(existingIsland);
 						islandID++;
 					}

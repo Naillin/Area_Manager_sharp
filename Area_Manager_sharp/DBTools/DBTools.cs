@@ -9,7 +9,7 @@ namespace Area_Manager_sharp.DBTools
 	/// </summary>
 	public class DBTools : DBBase
 	{
-		private static readonly string moduleName = "area-manager-sharp.DBTools";
+		private static readonly string moduleName = "DBTools";
 		private static readonly Logger baseLogger = LogManager.GetLogger(moduleName);
 		private static readonly LoggerManager logger = new LoggerManager(baseLogger, moduleName);
 

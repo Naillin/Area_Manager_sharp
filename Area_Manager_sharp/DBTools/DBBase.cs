@@ -9,7 +9,7 @@ namespace Area_Manager_sharp.DBTools
 	/// </summary>
 	abstract public class DBBase : IDBBase
 	{
-		private static readonly string moduleName = "area-manager-sharp.DBBase";
+		private static readonly string moduleName = "DBBase";
 		private static readonly Logger baseLogger = LogManager.GetLogger(moduleName);
 		private static readonly LoggerManager logger = new LoggerManager(baseLogger, moduleName);
 

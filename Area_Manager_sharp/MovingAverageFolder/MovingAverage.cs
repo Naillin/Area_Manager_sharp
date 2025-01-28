@@ -4,7 +4,7 @@ namespace Area_Manager_sharp.MovingAverage
 {
 	internal class MovingAverage
 	{
-		private static readonly string moduleName = "area-manager-sharp.MovingAverage";
+		private static readonly string moduleName = "MovingAverage";
 		private static readonly Logger baseLogger = LogManager.GetLogger(moduleName);
 		private static readonly LoggerManager logger = new LoggerManager(baseLogger, moduleName);
 

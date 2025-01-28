@@ -7,7 +7,7 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 {
 	internal class GDALPython
 	{
-		private static readonly string moduleName = "area-manager-sharp.GDALPython";
+		private static readonly string moduleName = "GDALPython";
 		private static readonly Logger baseLogger = LogManager.GetLogger(moduleName);
 		private static readonly LoggerManager logger = new LoggerManager(baseLogger, moduleName);
 
@@ -42,7 +42,7 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 			logger.Info("Python started.");
 		}
 
-		public double GetElevation(Сoordinate coordinate)
+		public double GetElevation(Coordinate coordinate)
 		{
 			double result = -32768;
 

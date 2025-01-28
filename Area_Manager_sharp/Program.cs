@@ -11,7 +11,7 @@ using System.Text.Json;
 
 class Program
 {
-	private static readonly string moduleName = "area-manager-sharp.main";
+	private static readonly string moduleName = "Program";
 	private static readonly Logger baseLogger = LogManager.GetLogger(moduleName);
 	private static readonly LoggerManager logger = new LoggerManager(baseLogger, moduleName);
 
@@ -106,6 +106,7 @@ class Program
 		//GlobalDiagnosticsContext.Set("isLinux", isLinux.ToString().ToLower()); // Передача переменной в NLog
 
 		logger.Info($"Starting...");
+		await Task.Delay(3000);
 		Program program = new Program();
 		Program.initConfig();
 
@@ -120,6 +121,7 @@ class Program
 		Dictionary<int, long?> lastDataChange = new Dictionary<int, long?>();
 
 		logger.Info($"All done!");
+		await Task.Delay(3000);
 
 		while (true)
 		{
@@ -131,7 +133,7 @@ class Program
 				double latitude = Convert.ToDouble(topics[i, 1]);
 				double longitude = Convert.ToDouble(topics[i, 2]);
 				object? checkTime = topics[i, 3];
-				DateTime checkTimeDT = DateTime.Now;
+				DateTime checkTimeDT = DateTime.UtcNow;
 				if (checkTime != null && long.TryParse(checkTime.ToString(), out long unixTime))
 				{
 					checkTimeDT = DateTimeOffset.FromUnixTimeSeconds(unixTime).DateTime;
@@ -139,12 +141,12 @@ class Program
 				else
 				{
 					// Если checkTime равен null или не может быть преобразован в long, используем текущее время
-					checkTimeDT = DateTime.Now;
+					checkTimeDT = DateTime.UtcNow;
 				}
-				logger.Info($"Checking topic {_topicID}");
+				logger.Info($"Checking topic {_topicID}. checkTime = {checkTimeDT}.");
 
 				// Если расчет был 2 часа назад, то нужно повторить проверку по параметрам затопления
-				if (checkTime == null || ((DateTime.Now - checkTimeDT).TotalHours >= 2))
+				if (checkTime == null || ((DateTime.UtcNow - checkTimeDT).TotalHours > 2))
 				{
 					dBTools.journalMode("WAL");
 					object? latestDataTime = dBTools.executeAnySqlScalar($"SELECT MAX(Time_Data) FROM Data WHERE ID_Topic = {_topicID};");
@@ -163,11 +165,11 @@ class Program
 							PointsPack pointsPack;
 							if (USE_SRTM)
 							{
-								pointsPack = analyzer.findAreaGDAL(new Сoordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
+								pointsPack = analyzer.findAreaGDAL(new Coordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
 							}
 							else
 							{
-								pointsPack = await analyzer.findArea(new Сoordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
+								pointsPack = await analyzer.findArea(new Coordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
 							}
 							
 							// Если по каким то причинам не получилось вставить данные
@@ -281,7 +283,7 @@ class Program
 		string perimeterPoints = string.Join(", ", pointsPack.PerimeterPoints);
 		string includedPoints = string.Join(", ", pointsPack.IncludedPoints);
 		//string islands = JsonSerializer.Serialize(pointsPack.Islands, new JsonSerializerOptions { WriteIndented = true }); //пока не нужно 
-		string islands = "[]";
+		string islands = string.Empty;
 
 		DBTools dBTools = new DBTools(SQL_CONNECTION);
 		dBTools.journalMode("WAL");
@@ -312,7 +314,7 @@ class Program
 				if (!string.IsNullOrEmpty(includedPointsBuffer))
 				{ includedPointsNew = includedPointsBuffer.Substring(1, includedPointsBuffer.Length - 2) + ", " + includedPoints; }
 				
-				string islandsNew = "[]";
+				string islandsNew = string.Empty;
 				if (!string.IsNullOrEmpty(islandsStr))
 				{
 					List<Island>? islandsList = JsonSerializer.Deserialize<List<Island>>(islandsStr);
@@ -323,7 +325,7 @@ class Program
 					}
 				}
 
-				dBTools.executeUpdate("AreaPoints", [_topicID.ToString(), $"[{depressionPointsNew}]", $"[{perimeterPointsNew}]", $"[{includedPointsNew}]", $"[{islandsNew}]"]);
+				dBTools.executeUpdate("AreaPoints", [$"[{depressionPointsNew}]", $"[{perimeterPointsNew}]", $"[{includedPointsNew}]", $"[{islandsNew}]"], $"where ID_Topic = {_topicID}");
 			}
 			
 			if (updateTime)

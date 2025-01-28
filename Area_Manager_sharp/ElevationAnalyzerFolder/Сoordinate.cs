@@ -1,7 +1,7 @@
 ﻿
 namespace Area_Manager_sharp.ElevationAnalyzer
 {
-	internal class Сoordinate
+	internal class Coordinate
 	{
 		private int roundDigits = Program.ROUND_DIGITS;
 
@@ -31,7 +31,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			}
 		}
 
-		public Сoordinate(double latitude, double longitude)
+		public Coordinate(double latitude, double longitude)
 		{
 			this.Latitude = latitude;
 			this.Longitude = longitude;
@@ -47,7 +47,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			if (obj is null) // Проверка на null
 				return false;
 
-			if (obj is Сoordinate other) // Проверка типа
+			if (obj is Coordinate other) // Проверка типа
 			{
 				return Latitude == other.Latitude && Longitude == other.Longitude;
 			}
