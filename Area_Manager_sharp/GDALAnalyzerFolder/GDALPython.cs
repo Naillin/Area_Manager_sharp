@@ -24,8 +24,36 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 
 		private Process? pythonProcess;
 
+		bool started = false;
 		public void StartPythonProcess()
 		{
+			//logger.Info("Checking FIFOs.");
+			//if (checkFIFO(_fifoToPython) && checkFIFO(_fifoFromPython))
+			//{
+			//	logger.Info("You have FIFOs!");
+			//	// Запуск Python-скрипта
+			//	ProcessStartInfo start = new ProcessStartInfo
+			//	{
+			//		FileName = _pythonPath,
+			//		Arguments = _scriptPath,
+			//		UseShellExecute = false,
+			//		RedirectStandardInput = true,
+			//		RedirectStandardOutput = true,
+			//		RedirectStandardError = true,
+			//		CreateNoWindow = true
+			//	};
+
+			//	logger.Info("Start Python.");
+			//	pythonProcess = Process.Start(start);
+			//	started = true;
+			//	logger.Info("Python started.");
+			//}
+			//else
+			//{
+			//	logger.Error("FIFO named pipes do not exist or already have data.");
+			//	started = false;
+			//}
+
 			// Запуск Python-скрипта
 			ProcessStartInfo start = new ProcessStartInfo
 			{
@@ -38,7 +66,9 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 				CreateNoWindow = true
 			};
 
+			logger.Info("Start Python.");
 			pythonProcess = Process.Start(start);
+			started = true;
 			logger.Info("Python started.");
 		}
 
@@ -46,39 +76,48 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 		{
 			double result = -32768;
 
-			try
+			logger.Info("GetElevation method from Python.");
+
+			if (started)
 			{
-				// Отправка координат в Python через FIFO
-				using (var writer = new StreamWriter(_fifoToPython))
+				try
 				{
-					string coordinates = $"{coordinate.Latitude.ToString(CultureInfo.InvariantCulture)},{coordinate.Longitude.ToString(CultureInfo.InvariantCulture)}";
-					writer.WriteLine(coordinates);
-					logger.Info("Coordinates sent to Python.");
+					// Отправка координат в Python через FIFO
+					using (var writer = new StreamWriter(_fifoToPython))
+					{
+						string coordinates = $"{coordinate.Latitude.ToString(CultureInfo.InvariantCulture)},{coordinate.Longitude.ToString(CultureInfo.InvariantCulture)}";
+						writer.WriteLine(coordinates);
+						logger.Info("Coordinates sent to Python.");
+					}
+
+					// Чтение результата из FIFO
+					using (var reader = new StreamReader(_fifoFromPython))
+					{
+						string? resultStr = reader.ReadLine();
+						logger.Info("Elevation received from Python.");
+
+						if (resultStr == null || resultStr == "NULL")
+						{
+							result = -32768;
+						}
+						else if (resultStr.StartsWith("ERROR:"))
+						{
+							result = -32768;
+						}
+						else
+						{
+							result = Convert.ToDouble(resultStr);
+						}
+					}
 				}
-
-				// Чтение результата из FIFO
-				using (var reader = new StreamReader(_fifoFromPython))
+				catch (Exception ex)
 				{
-					string? resultStr = reader.ReadLine();
-					logger.Info("Elevation received from Python.");
-
-					if (resultStr == null || resultStr == "NULL")
-					{
-						result = -32768;
-					}
-					else if (resultStr.StartsWith("ERROR:"))
-					{
-						result = -32768;
-					}
-					else
-					{
-						result = Convert.ToDouble(resultStr);
-					}
+					logger.Error($"Error in GetElevation: {ex.Message}");
 				}
 			}
-			catch (Exception ex)
+			else
 			{
-				logger.Error($"Error in GetElevation: {ex.Message}");
+				logger.Error("Python is not was started.");
 			}
 
 			return result;
@@ -86,15 +125,45 @@ namespace Area_Manager_sharp.GDALAnalyzerFolder
 
 		public void StopPythonProcess()
 		{
-			// Отправка команды EXIT в Python через FIFO
-			using (var writer = new StreamWriter(_fifoToPython))
+			if (started)
 			{
-				writer.WriteLine("EXIT");
+				// Отправка команды EXIT в Python через FIFO
+				using (var writer = new StreamWriter(_fifoToPython))
+				{
+					writer.WriteLine("EXIT");
+				}
+
+				pythonProcess?.WaitForExit();  // Ожидание завершения Python-процесса
+				pythonProcess?.Close();
+				started = false;
+				logger.Info("Python stopped.");
+			}
+			else
+			{
+				logger.Error("Python is not was started.");
+			}
+		}
+
+		private bool checkFIFO(string path)
+		{
+			bool result = false;
+
+			if (File.Exists(path))
+			{
+				using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+				{
+					if (fs.Length == 0)
+						result = true;
+					else
+						result = false;
+				}
+			}
+			else
+			{
+				result = false;
 			}
 
-			pythonProcess?.WaitForExit();  // Ожидание завершения Python-процесса
-			pythonProcess?.Close();
-			logger.Info("Python stopped.");
+			return result;
 		}
 	}
 }

@@ -27,15 +27,19 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 		private int _delay = 1000;
 		private int _maxAttempts = 3;
+		private double _distance = 200;
+		private bool _equalOption = false;
 		//private GDALTileManager _gDAL;
 		private GDALPython _gDALPython;
 		private readonly HttpClient _httpClient;
 		bool _debug = false;
 
-		public ElevationAnalyzer(int delay = 1000, int maxAttempts = 3, bool debug = false)
+		public ElevationAnalyzer(int delay = 1000, int maxAttempts = 3, double distance = 200, bool equalOption = false, bool debug = false)
 		{
 			_delay = delay;
 			_maxAttempts = maxAttempts;
+			_distance = distance;
+			_equalOption = equalOption;
 			//_gDAL = new GDALTileManager(Program.TILES_FOLDER, $"{Program.TILES_FOLDER}/summaryFile.json");
 			_gDALPython = new GDALPython(Program.GDAL_PYTHON, Program.GDAL_PYSCRIPT);
 			_httpClient = new HttpClient();
@@ -139,7 +143,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 		// делегат для оператора сравнения
 		public delegate bool ComparisonOperator(double a, double b);
-		public async Task<PointsPack> findArea(Coordinate coordinate, double initialHeight = 200, double distance = 200, bool equalOption = false, bool useInflux = false)
+		public async Task<PointsPack> findArea(Coordinate coordinate, double initialHeight, bool useInflux = false)
 		{
 			List<Coordinate> depressionPoints = new List<Coordinate>();
 			List<Coordinate> perimeterPoints = new List<Coordinate>();
@@ -156,7 +160,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			int countDebug = 0;
 
 			ComparisonOperator comparison;
-			if (equalOption)
+			if (_equalOption)
 			{
 				comparison = (a, b) => a <= b; // Используем оператор <=
 			}
@@ -186,7 +190,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				if (comparison(currentElevation, checkPoint._height))
 				{
 					depressionPoints.Add(checkPoint._сoordinate);
-					List<Coordinate> neighbors = getNeighbors(checkPoint._сoordinate, distance);
+					List<Coordinate> neighbors = getNeighbors(checkPoint._сoordinate, _distance);
 					foreach (Coordinate neighbor in neighbors)
 					{
 						if (!checkedPoints.Contains(neighbor))
@@ -202,17 +206,18 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				}
 				logger.Info($"Количество точек для проверки: {pointsToCheck.Count}.");
 
-				if (_debug && countDebug >= 10)
+				if (_debug && countDebug >= 100)
 				{
 					PointsPack resultDebug = new PointsPack(depressionPoints, perimeterPoints, includedPoints, islands);
-					program.insertAreaData(resultDebug, Program.TopicID, false, true);
-					logger.Info($"Number of requests to API: {countAPI}.");
+					program.insertAreaData(resultDebug, Program.TopicID, true, true);
+					countDebug = 0;
+					await Task.Delay(1000);
 				}
 			}
 
 			foreach (Coordinate point in depressionPoints)
 			{
-				List<Coordinate> neighbors = getNeighbors(point, distance);
+				List<Coordinate> neighbors = getNeighbors(point, _distance);
 
 				bool hasNonFloodedNeighbor = false;
 				foreach (Coordinate neighbor in neighbors)
@@ -283,7 +288,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			return result;
 		}
 
-		public PointsPack findAreaGDAL(Coordinate coordinate, double initialHeight = 200, double distance = 200, bool equalOption = false, bool useInflux = false)
+		public PointsPack findAreaGDAL(Coordinate coordinate, double initialHeight, bool useInflux = false)
 		{
 			List<Coordinate> depressionPoints = new List<Coordinate>();
 			List<Coordinate> perimeterPoints = new List<Coordinate>();
@@ -300,7 +305,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			int countDebug = 0;
 
 			ComparisonOperator comparison;
-			if (equalOption)
+			if (_equalOption)
 			{
 				comparison = (a, b) => a <= b; // Используем оператор <=
 			}
@@ -309,6 +314,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				comparison = (a, b) => a < b; // Используем оператор <
 			}
 
+			logger.Info($"Вычисление затопленных точек.");
 			_gDALPython.StartPythonProcess();
 			while (pointsToCheck.Count != 0)
 			{
@@ -342,7 +348,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				if (comparison(currentElevation, checkPoint._height))
 				{
 					depressionPoints.Add(checkPoint._сoordinate);
-					List<Coordinate> neighbors = getNeighbors(checkPoint._сoordinate, distance);
+					List<Coordinate> neighbors = getNeighbors(checkPoint._сoordinate, _distance);
 					foreach (Coordinate neighbor in neighbors)
 					{
 						if (!checkedPoints.Contains(neighbor))
@@ -358,18 +364,20 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 				}
 				logger.Info($"Количество точек для проверки: {pointsToCheck.Count}.");
 
-				if (_debug && countDebug >= 50)
+				if (_debug && countDebug >= 100)
 				{
 					PointsPack resultDebug = new PointsPack(depressionPoints, perimeterPoints, includedPoints, islands);
 					program.insertAreaData(resultDebug, Program.TopicID, true, true);
 					countDebug = 0;
+					Thread.Sleep(1000);
 				}
 			}
 			_gDALPython.StopPythonProcess();
+			logger.Info($"Затопленные точки вычеслены.");
 
 			foreach (Coordinate point in depressionPoints)
 			{
-				List<Coordinate> neighbors = getNeighbors(point, distance);
+				List<Coordinate> neighbors = getNeighbors(point, _distance);
 
 				bool hasNonFloodedNeighbor = false;
 				foreach (Coordinate neighbor in neighbors)
@@ -409,6 +417,113 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 					}
 				}
 			}
+
+			PointsPack result = new PointsPack(depressionPoints, perimeterPoints, includedPoints, islands);
+			logger.Info($"Depression Points: {string.Join("; ", depressionPoints)}.");
+			logger.Info($"Perimeter Points: {string.Join("; ", perimeterPoints)}.");
+			logger.Info($"Included Points: {string.Join(";", includedPoints)}.");
+			logger.Info($"Islands: {string.Join("; ", islands)}.");
+			return result;
+		}
+
+		public static List<Coordinate> GenerateCirclePoints(Coordinate center, double stepDistanceMeters = 30, double circleRadiusMeters = 10000)
+		{
+			List<Coordinate> circlePoints = new List<Coordinate>();
+			circlePoints.Add(center); // Добавляем центр круга в результат
+
+			// Преобразуем метры в градусы для широты (1 градус широты ≈ 111320 метров)
+			double stepDistanceDegreesLat = stepDistanceMeters / 111320.0;
+			double circleRadiusDegreesLat = circleRadiusMeters / 111320.0;
+
+			// Учитываем, что длина градуса долготы зависит от широты
+			double centerLatRadians = center.Latitude * Math.PI / 180.0; // Широта центра в радианах
+			double metersPerDegreeLon = 111320.0 * Math.Cos(centerLatRadians); // Длина градуса долготы на текущей широте
+			double stepDistanceDegreesLon = stepDistanceMeters / metersPerDegreeLon; // Шаг для долготы в градусах
+			double circleRadiusDegreesLon = circleRadiusMeters / metersPerDegreeLon; // Радиус для долготы в градусах
+
+			logger.Info($"Начало генерации точек круга.");
+
+			// Генерация точек круга
+			for (double currentRadiusDegrees = 0; currentRadiusDegrees <= circleRadiusDegreesLat; currentRadiusDegrees += stepDistanceDegreesLat)
+			{
+				// Количество шагов для текущего радиуса
+				int numberOfSteps = (int)(2 * Math.PI * currentRadiusDegrees / stepDistanceDegreesLat);
+
+				for (int stepIndex = 0; stepIndex < numberOfSteps; stepIndex++)
+				{
+					// Угол для текущей точки
+					double angle = stepIndex * (2 * Math.PI / numberOfSteps);
+
+					// Вычисляем координаты точки
+					double pointLat = center.Latitude + currentRadiusDegrees * Math.Cos(angle); // Широта точки
+					double pointLon = center.Longitude + currentRadiusDegrees * Math.Sin(angle) * (stepDistanceDegreesLon / stepDistanceDegreesLat); // Долгота точки
+
+					// Добавляем точку в результат
+					circlePoints.Add(new Coordinate(pointLat, pointLon));
+				}
+			}
+
+			logger.Info($"Генерация точек круга завершена. Сгенерировано {circlePoints.Count} точек.");
+
+			return circlePoints;
+		}
+
+		public PointsPack findAreaFigureGDAL(Coordinate coordinate, double initialHeight = 100, double radius = 10000, int countOfSubs = 100)
+		{
+			List<Coordinate> depressionPoints = new List<Coordinate>();
+			List<Coordinate> perimeterPoints = new List<Coordinate>();
+			List<Coordinate> includedPoints = new List<Coordinate>();
+			List<Coordinate> nonFloodedPoints = new List<Coordinate>();
+			List<Island> islands = new List<Island>();
+
+			Program program = new Program();
+
+			HashSet<Coordinate> checkedPoints = new HashSet<Coordinate>();
+			double stepForHeight = (initialHeight / 1.0) / countOfSubs;
+			double stepForRadius = radius / countOfSubs;
+
+			ComparisonOperator comparison;
+			if (_equalOption)
+			{
+				comparison = (a, b) => a <= b; // Используем оператор <=
+			}
+			else
+			{
+				comparison = (a, b) => a < b; // Используем оператор <
+			}
+
+			logger.Info($"Вычисление затопленных точек.");
+			_gDALPython.StartPythonProcess();
+			for (double currentRadius = stepForRadius; currentRadius <= 10000; currentRadius = currentRadius + stepForRadius)
+			{
+				List<Coordinate> circleCoordinates = GenerateCirclePoints(coordinate, _distance, currentRadius);
+				foreach (Coordinate item in circleCoordinates)
+				{
+					if (!checkedPoints.Contains(item))
+					{
+						checkedPoints.Add(item);
+
+						double currentElevation = GetElevationGDAL(item);
+						logger.Info($"Высота проверяемой точки: {currentElevation}.");
+						if (comparison(currentElevation, initialHeight))
+						{
+							depressionPoints.Add(item);
+						}
+					}
+				}
+
+				if (_debug)
+				{
+					PointsPack resultDebug = new PointsPack(depressionPoints, perimeterPoints, includedPoints, islands);
+					program.insertAreaData(resultDebug, Program.TopicID, true, true);
+					Thread.Sleep(1000);
+				}
+
+				initialHeight = initialHeight - stepForHeight;
+			}
+			_gDALPython.StopPythonProcess();
+			depressionPoints = depressionPoints.Distinct().ToList();
+			logger.Info($"Затопленные точки вычеслены.");
 
 			PointsPack result = new PointsPack(depressionPoints, perimeterPoints, includedPoints, islands);
 			logger.Info($"Depression Points: {string.Join("; ", depressionPoints)}.");

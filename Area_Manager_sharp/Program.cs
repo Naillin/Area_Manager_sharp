@@ -16,23 +16,27 @@ class Program
 	private static readonly LoggerManager logger = new LoggerManager(baseLogger, moduleName);
 
 	public static int ROUND_DIGITS = 6;
-	private static double DISTANCE = 200;
-	private static int DELAY = 300;
-	private static double WINDOW_SIZE = 7;
-	private static double SMOOTHING = 10;
-	private static double SLOPE_FACTOR = 3;
-	private static bool EQUAL_OPTION = false;
-	private static bool USE_INFLUX = false;
 	private static bool DEBUG_MODE = false;
 	public static string SQL_CONNECTION = "Data Source=../MQTT_Data_collector/mqtt_data.db";
 	//private static string SQL_CONNECTION = "Data Source=mqtt_data.db";
-	private static bool USE_SRTM = true;
+
+	private static double WINDOW_SIZE = 7;
+	private static double SMOOTHING = 10;
+	private static double SLOPE_FACTOR = 3;
+	
+	private static int DELAY = 300;
+	private static double DISTANCE = 200;
+	private static bool EQUAL_OPTION = false;
+	private static bool USE_INFLUX = false;
+	private static int USE_SRTM = 0;
+	private static double RADIUS = 10000;
+	private static int COUNT_OF_SUBS = 100;
 	public static string TILES_FOLDER = "tilesFolder/";
+	//public static string TILES_FOLDER = "C:/Users/kamil/Desktop/tiles/";
 	public static string GDAL_PYTHON = "GDALPython/venv/bin/python3";
 	public static string GDAL_PYSCRIPT = "GDALPython/main.py";
-	//public static string TILES_FOLDER = "C:/Users/kamil/Desktop/tiles/";
-	private const string filePathConfig = "config.ini";
 
+	private const string filePathConfig = "config.ini";
 	private static string configTextDefault = string.Empty;
 	private static void initConfig()
 	{
@@ -44,19 +48,23 @@ class Program
 
 			IniData data = parser.ReadFile(filePathConfig);
 			ROUND_DIGITS = Convert.ToInt32(data["Settings"]["ROUND_DIGITS"]);
-			DISTANCE = Convert.ToDouble(data["Settings"]["DISTANCE"]);
-			DELAY = Convert.ToInt32(data["Settings"]["DELAY"]);
-			WINDOW_SIZE = Convert.ToDouble(data["Settings"]["WINDOW_SIZE"]);
-			SMOOTHING = Convert.ToDouble(data["Settings"]["SMOOTHING"]);
-			SLOPE_FACTOR = Convert.ToDouble(data["Settings"]["SLOPE_FACTOR"]);
-			EQUAL_OPTION = bool.Parse(data["Settings"]["EQUAL_OPTION"]);
-			USE_INFLUX = bool.Parse(data["Settings"]["USE_INFLUX"]);
 			DEBUG_MODE = bool.Parse(data["Settings"]["DEBUG_MODE"]);
 			SQL_CONNECTION = data["Settings"]["SQL_CONNECTION"];
-			USE_SRTM = bool.Parse(data["Settings"]["USE_SRTM"]);
-			TILES_FOLDER = data["Settings"]["TILES_FOLDER"];
-			GDAL_PYTHON = data["Settings"]["GDAL_PYTHON"];
-			GDAL_PYSCRIPT = data["Settings"]["GDAL_PYSCRIPT"];
+
+			WINDOW_SIZE = Convert.ToDouble(data["MovingAverage"]["WINDOW_SIZE"]);
+			SMOOTHING = Convert.ToDouble(data["MovingAverage"]["SMOOTHING"]);
+			SLOPE_FACTOR = Convert.ToDouble(data["MovingAverage"]["SLOPE_FACTOR"]);
+
+			DELAY = Convert.ToInt32(data["ElevationAnalyzer"]["DELAY"]);
+			DISTANCE = Convert.ToDouble(data["ElevationAnalyzer"]["DISTANCE"]);
+			EQUAL_OPTION = bool.Parse(data["ElevationAnalyzer"]["EQUAL_OPTION"]);
+			USE_INFLUX = bool.Parse(data["ElevationAnalyzer"]["USE_INFLUX"]);
+			USE_SRTM = Convert.ToInt32(data["ElevationAnalyzer"]["USE_SRTM"]);
+			RADIUS = Convert.ToDouble(data["ElevationAnalyzer"]["RADIUS"]);
+			COUNT_OF_SUBS = Convert.ToInt32(data["ElevationAnalyzer"]["COUNT_OF_SUBS"]);
+			TILES_FOLDER = data["ElevationAnalyzer"]["TILES_FOLDER"];
+			GDAL_PYTHON = data["ElevationAnalyzer"]["GDAL_PYTHON"];
+			GDAL_PYSCRIPT = data["ElevationAnalyzer"]["GDAL_PYSCRIPT"];
 		}
 		else
 		{
@@ -65,36 +73,47 @@ class Program
 			IniData data = new IniData();
 			data.Sections.AddSection("Settings");
 			data["Settings"]["ROUND_DIGITS"] = ROUND_DIGITS.ToString();
-			data["Settings"]["DISTANCE"] = DISTANCE.ToString();
-			data["Settings"]["DELAY"] = DELAY.ToString();
-			data["Settings"]["WINDOW_SIZE"] = WINDOW_SIZE.ToString();
-			data["Settings"]["SMOOTHING"] = SMOOTHING.ToString();
-			data["Settings"]["SLOPE_FACTOR"] = SLOPE_FACTOR.ToString();
-			data["Settings"]["EQUAL_OPTION"] = EQUAL_OPTION.ToString();
-			data["Settings"]["USE_INFLUX"] = USE_INFLUX.ToString();
 			data["Settings"]["DEBUG_MODE"] = DEBUG_MODE.ToString();
 			data["Settings"]["SQL_CONNECTION"] = SQL_CONNECTION.ToString();
-			data["Settings"]["USE_SRTM"] = USE_SRTM.ToString();
-			data["Settings"]["TILES_FOLDER"] = TILES_FOLDER.ToString();
-			data["Settings"]["GDAL_PYTHON"] = GDAL_PYTHON.ToString();
-			data["Settings"]["GDAL_PYSCRIPT"] = GDAL_PYSCRIPT.ToString();
+
+			data.Sections.AddSection("MovingAverage");
+			data["MovingAverage"]["WINDOW_SIZE"] = WINDOW_SIZE.ToString();
+			data["MovingAverage"]["SMOOTHING"] = SMOOTHING.ToString();
+			data["MovingAverage"]["SLOPE_FACTOR"] = SLOPE_FACTOR.ToString();
+
+			data.Sections.AddSection("ElevationAnalyzer");
+			data["ElevationAnalyzer"]["DELAY"] = DELAY.ToString();
+			data["ElevationAnalyzer"]["DISTANCE"] = DISTANCE.ToString();
+			data["ElevationAnalyzer"]["EQUAL_OPTION"] = EQUAL_OPTION.ToString();
+			data["ElevationAnalyzer"]["USE_INFLUX"] = USE_INFLUX.ToString();
+			data["ElevationAnalyzer"]["USE_SRTM"] = USE_SRTM.ToString();
+			data["ElevationAnalyzer"]["RADIUS"] = RADIUS.ToString();
+			data["ElevationAnalyzer"]["COUNT_OF_SUBS"] = COUNT_OF_SUBS.ToString();
+			data["ElevationAnalyzer"]["TILES_FOLDER"] = TILES_FOLDER.ToString();
+			data["ElevationAnalyzer"]["GDAL_PYTHON"] = GDAL_PYTHON.ToString();
+			data["ElevationAnalyzer"]["GDAL_PYSCRIPT"] = GDAL_PYSCRIPT.ToString();
+
 			parser.WriteFile(filePathConfig, data);
 		}
 
 		configTextDefault = $"ROUND_DIGITS = [{ROUND_DIGITS}]\r\n" +
-								$"DISTANCE = [{DISTANCE}]\r\n" +
-								$"DELAY = [{DELAY}]\r\n" +
-								$"WINDOW_SIZE = [{WINDOW_SIZE}]\r\n" +
-								$"SMOOTHING = [{SMOOTHING}]\r\n" +
-								$"SLOPE_FACTOR = [{SLOPE_FACTOR}]\r\n" +
-								$"EQUAL_OPTION = [{EQUAL_OPTION}]\r\n" +
-								$"USE_INFLUX = [{USE_INFLUX}]\r\n" +
-								$"DEBUG_MODE = [{DEBUG_MODE}]\r\n" +
-								$"SQL_CONNECTION = [{SQL_CONNECTION}]\r\n" +
-								$"USE_SRTM = [{USE_SRTM}]\r\n" +
-								$"TILES_FOLDER = [{TILES_FOLDER}]\r\n" +
-								$"GDAL_PYTHON = [{GDAL_PYTHON}]\r\n" +
-								$"GDAL_PYSCRIPT = [{GDAL_PYSCRIPT}]";
+							$"DEBUG_MODE = [{DEBUG_MODE}]\r\n" +
+							$"SQL_CONNECTION = [{SQL_CONNECTION}]\r\n" +
+							
+							$"WINDOW_SIZE = [{WINDOW_SIZE}]\r\n" +
+							$"SMOOTHING = [{SMOOTHING}]\r\n" +
+							$"SLOPE_FACTOR = [{SLOPE_FACTOR}]\r\n" +
+
+							$"DELAY = [{DELAY}]\r\n" +
+							$"DISTANCE = [{DISTANCE}]\r\n" +
+							$"EQUAL_OPTION = [{EQUAL_OPTION}]\r\n" +
+							$"USE_INFLUX = [{USE_INFLUX}]\r\n" +
+							$"USE_SRTM = [{USE_SRTM}]\r\n" +
+							$"RADIUS = [{RADIUS}]\r\n" +
+							$"COUNT_OF_SUBS = [{COUNT_OF_SUBS}]\r\n" +
+							$"TILES_FOLDER = [{TILES_FOLDER}]\r\n" +
+							$"GDAL_PYTHON = [{GDAL_PYTHON}]\r\n" +
+							$"GDAL_PYSCRIPT = [{GDAL_PYSCRIPT}]";
 	}
 
 	private static int _topicID = 0;
@@ -115,7 +134,7 @@ class Program
 		DBTools dBTools = new DBTools(Program.SQL_CONNECTION);
 		dBTools.journalMode("WAL");
 
-		ElevationAnalyzer analyzer = new ElevationAnalyzer(Program.DELAY, 3, Program.DEBUG_MODE);
+		ElevationAnalyzer analyzer = new ElevationAnalyzer(Program.DELAY, 3, Program.DISTANCE, Program.EQUAL_OPTION, Program.DEBUG_MODE);
 
 		// Глобальный словарь для хранения времени последнего изменения данных для каждого топика
 		Dictionary<int, long?> lastDataChange = new Dictionary<int, long?>();
@@ -163,13 +182,17 @@ class Program
 							logger.Info($"Conditions met for topic {_topicID}. Calculating area points.");
 							// Вычисялем точки
 							PointsPack pointsPack;
-							if (USE_SRTM)
+							switch (USE_SRTM)
 							{
-								pointsPack = analyzer.findAreaGDAL(new Coordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
-							}
-							else
-							{
-								pointsPack = await analyzer.findArea(new Coordinate(latitude, longitude), prediction3, Program.DISTANCE, Program.EQUAL_OPTION, Program.USE_INFLUX);
+								case 0:
+									pointsPack = analyzer.findAreaGDAL(new Coordinate(latitude, longitude), prediction3, Program.USE_INFLUX);
+									break;
+								case 1:
+									pointsPack = analyzer.findAreaFigureGDAL(new Coordinate(latitude, longitude), prediction3, Program.RADIUS, Program.COUNT_OF_SUBS);
+									break;
+								default:
+									pointsPack = await analyzer.findArea(new Coordinate(latitude, longitude), prediction3, Program.USE_INFLUX);
+									break;
 							}
 							
 							// Если по каким то причинам не получилось вставить данные
