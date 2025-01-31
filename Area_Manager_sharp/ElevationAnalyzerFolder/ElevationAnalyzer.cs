@@ -468,7 +468,7 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			return circlePoints;
 		}
 
-		public PointsPack findAreaFigureGDAL(Coordinate coordinate, double initialHeight = 100, double radius = 10000, int countOfSubs = 100)
+		public PointsPack findAreaFigureGDAL(Coordinate coordinate, double initialHeight = 100, double radius = 10000, int countOfSubs = 100, double coefHeight = 2.0)
 		{
 			List<Coordinate> depressionPoints = new List<Coordinate>();
 			List<Coordinate> perimeterPoints = new List<Coordinate>();
@@ -479,8 +479,8 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 			Program program = new Program();
 
 			HashSet<Coordinate> checkedPoints = new HashSet<Coordinate>();
-			double stepForHeight = (initialHeight / 1.0) / countOfSubs;
-			double stepForRadius = radius / countOfSubs;
+			double stepForHeight = (initialHeight / coefHeight) / (double)countOfSubs;
+			double stepForRadius = radius / (double)countOfSubs;
 
 			ComparisonOperator comparison;
 			if (_equalOption)
@@ -494,9 +494,39 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 
 			logger.Info($"Вычисление затопленных точек.");
 			_gDALPython.StartPythonProcess();
-			for (double currentRadius = stepForRadius; currentRadius <= 10000; currentRadius = currentRadius + stepForRadius)
+			if (coefHeight != -1)
 			{
-				List<Coordinate> circleCoordinates = GenerateCirclePoints(coordinate, _distance, currentRadius);
+				for (double currentRadius = stepForRadius; currentRadius <= 10000; currentRadius = currentRadius + stepForRadius)
+				{
+					List<Coordinate> circleCoordinates = GenerateCirclePoints(coordinate, _distance, currentRadius);
+					foreach (Coordinate item in circleCoordinates)
+					{
+						if (!checkedPoints.Contains(item))
+						{
+							checkedPoints.Add(item);
+
+							double currentElevation = GetElevationGDAL(item);
+							logger.Info($"Высота проверяемой точки: {currentElevation}.");
+							if (comparison(currentElevation, initialHeight))
+							{
+								depressionPoints.Add(item);
+							}
+						}
+					}
+
+					if (_debug)
+					{
+						PointsPack resultDebug = new PointsPack(depressionPoints, perimeterPoints, includedPoints, islands);
+						program.insertAreaData(resultDebug, Program.TopicID, true, true);
+						Thread.Sleep(1000);
+					}
+
+					initialHeight = initialHeight - stepForHeight;
+				}
+			}
+			else
+			{
+				List<Coordinate> circleCoordinates = GenerateCirclePoints(coordinate, _distance, radius);
 				foreach (Coordinate item in circleCoordinates)
 				{
 					if (!checkedPoints.Contains(item))
@@ -511,15 +541,6 @@ namespace Area_Manager_sharp.ElevationAnalyzer
 						}
 					}
 				}
-
-				if (_debug)
-				{
-					PointsPack resultDebug = new PointsPack(depressionPoints, perimeterPoints, includedPoints, islands);
-					program.insertAreaData(resultDebug, Program.TopicID, true, true);
-					Thread.Sleep(1000);
-				}
-
-				initialHeight = initialHeight - stepForHeight;
 			}
 			_gDALPython.StopPythonProcess();
 			depressionPoints = depressionPoints.Distinct().ToList();

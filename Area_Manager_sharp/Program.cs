@@ -31,6 +31,7 @@ class Program
 	private static int USE_SRTM = 0;
 	private static double RADIUS = 10000;
 	private static int COUNT_OF_SUBS = 100;
+	private static double COEF_HEIGHT = 2.0;
 	public static string TILES_FOLDER = "tilesFolder/";
 	//public static string TILES_FOLDER = "C:/Users/kamil/Desktop/tiles/";
 	public static string GDAL_PYTHON = "GDALPython/venv/bin/python3";
@@ -62,6 +63,7 @@ class Program
 			USE_SRTM = Convert.ToInt32(data["ElevationAnalyzer"]["USE_SRTM"]);
 			RADIUS = Convert.ToDouble(data["ElevationAnalyzer"]["RADIUS"]);
 			COUNT_OF_SUBS = Convert.ToInt32(data["ElevationAnalyzer"]["COUNT_OF_SUBS"]);
+			COEF_HEIGHT = Convert.ToDouble(data["ElevationAnalyzer"]["COEF_HEIGHT"]);
 			TILES_FOLDER = data["ElevationAnalyzer"]["TILES_FOLDER"];
 			GDAL_PYTHON = data["ElevationAnalyzer"]["GDAL_PYTHON"];
 			GDAL_PYSCRIPT = data["ElevationAnalyzer"]["GDAL_PYSCRIPT"];
@@ -89,6 +91,7 @@ class Program
 			data["ElevationAnalyzer"]["USE_SRTM"] = USE_SRTM.ToString();
 			data["ElevationAnalyzer"]["RADIUS"] = RADIUS.ToString();
 			data["ElevationAnalyzer"]["COUNT_OF_SUBS"] = COUNT_OF_SUBS.ToString();
+			data["ElevationAnalyzer"]["COEF_HEIGHT"] = COEF_HEIGHT.ToString();
 			data["ElevationAnalyzer"]["TILES_FOLDER"] = TILES_FOLDER.ToString();
 			data["ElevationAnalyzer"]["GDAL_PYTHON"] = GDAL_PYTHON.ToString();
 			data["ElevationAnalyzer"]["GDAL_PYSCRIPT"] = GDAL_PYSCRIPT.ToString();
@@ -111,6 +114,7 @@ class Program
 							$"USE_SRTM = [{USE_SRTM}]\r\n" +
 							$"RADIUS = [{RADIUS}]\r\n" +
 							$"COUNT_OF_SUBS = [{COUNT_OF_SUBS}]\r\n" +
+							$"COEF_HEIGHT = [{COEF_HEIGHT}]\r\n" +
 							$"TILES_FOLDER = [{TILES_FOLDER}]\r\n" +
 							$"GDAL_PYTHON = [{GDAL_PYTHON}]\r\n" +
 							$"GDAL_PYSCRIPT = [{GDAL_PYSCRIPT}]";
@@ -188,7 +192,7 @@ class Program
 									pointsPack = analyzer.findAreaGDAL(new Coordinate(latitude, longitude), prediction3, Program.USE_INFLUX);
 									break;
 								case 1:
-									pointsPack = analyzer.findAreaFigureGDAL(new Coordinate(latitude, longitude), prediction3, Program.RADIUS, Program.COUNT_OF_SUBS);
+									pointsPack = analyzer.findAreaFigureGDAL(new Coordinate(latitude, longitude), prediction3, Program.RADIUS, Program.COUNT_OF_SUBS, Program.COEF_HEIGHT);
 									break;
 								default:
 									pointsPack = await analyzer.findArea(new Coordinate(latitude, longitude), prediction3, Program.USE_INFLUX);
