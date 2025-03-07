@@ -8,6 +8,7 @@ using IniParser;
 using NLog;
 using NLog.Fluent;
 using System.Text.Json;
+using Area_Manager_sharp.MovingAverageFolder;
 
 class Program
 {
@@ -17,12 +18,13 @@ class Program
 
 	public static int ROUND_DIGITS = 6;
 	private static bool DEBUG_MODE = false;
-	public static string SQL_CONNECTION = "Data Source=../MQTT_Data_collector/mqtt_data.db";
+	private static string SQL_CONNECTION = "Data Source=../MQTT_Data_collector/mqtt_data.db";
+	private static int COUNT_DATA = 100;
 	//private static string SQL_CONNECTION = "Data Source=mqtt_data.db";
 
 	private static double WINDOW_SIZE = 7;
-	private static double SMOOTHING = 10;
-	private static double SLOPE_FACTOR = 3;
+	private static double SMOOTHING = 2;
+	private static double SLOPE_FACTOR = 2;
 	
 	private static int DELAY = 300;
 	private static double DISTANCE = 200;
@@ -51,6 +53,7 @@ class Program
 			ROUND_DIGITS = Convert.ToInt32(data["Settings"]["ROUND_DIGITS"]);
 			DEBUG_MODE = bool.Parse(data["Settings"]["DEBUG_MODE"]);
 			SQL_CONNECTION = data["Settings"]["SQL_CONNECTION"];
+			COUNT_DATA = Convert.ToInt32(data["Settings"]["COUNT_DATA"]);
 
 			WINDOW_SIZE = Convert.ToDouble(data["MovingAverage"]["WINDOW_SIZE"]);
 			SMOOTHING = Convert.ToDouble(data["MovingAverage"]["SMOOTHING"]);
@@ -77,6 +80,7 @@ class Program
 			data["Settings"]["ROUND_DIGITS"] = ROUND_DIGITS.ToString();
 			data["Settings"]["DEBUG_MODE"] = DEBUG_MODE.ToString();
 			data["Settings"]["SQL_CONNECTION"] = SQL_CONNECTION.ToString();
+			data["Settings"]["COUNT_DATA"] = COUNT_DATA.ToString();
 
 			data.Sections.AddSection("MovingAverage");
 			data["MovingAverage"]["WINDOW_SIZE"] = WINDOW_SIZE.ToString();
@@ -99,24 +103,25 @@ class Program
 			parser.WriteFile(filePathConfig, data);
 		}
 
-		configTextDefault = $"ROUND_DIGITS = [{ROUND_DIGITS}]\r\n" +
-							$"DEBUG_MODE = [{DEBUG_MODE}]\r\n" +
-							$"SQL_CONNECTION = [{SQL_CONNECTION}]\r\n" +
+		configTextDefault = $"ROUND_DIGITS = [{ROUND_DIGITS}]\n" +
+							$"DEBUG_MODE = [{DEBUG_MODE}]\n" +
+							$"SQL_CONNECTION = [{SQL_CONNECTION}]\n" +
+							$"COUNT_DATA = [{COUNT_DATA}]\n" +
 							
-							$"WINDOW_SIZE = [{WINDOW_SIZE}]\r\n" +
-							$"SMOOTHING = [{SMOOTHING}]\r\n" +
-							$"SLOPE_FACTOR = [{SLOPE_FACTOR}]\r\n" +
+							$"WINDOW_SIZE = [{WINDOW_SIZE}]\n" +
+							$"SMOOTHING = [{SMOOTHING}]\n" +
+							$"SLOPE_FACTOR = [{SLOPE_FACTOR}]\n" +
 
-							$"DELAY = [{DELAY}]\r\n" +
-							$"DISTANCE = [{DISTANCE}]\r\n" +
-							$"EQUAL_OPTION = [{EQUAL_OPTION}]\r\n" +
-							$"USE_INFLUX = [{USE_INFLUX}]\r\n" +
-							$"USE_SRTM = [{USE_SRTM}]\r\n" +
-							$"RADIUS = [{RADIUS}]\r\n" +
-							$"COUNT_OF_SUBS = [{COUNT_OF_SUBS}]\r\n" +
-							$"COEF_HEIGHT = [{COEF_HEIGHT}]\r\n" +
-							$"TILES_FOLDER = [{TILES_FOLDER}]\r\n" +
-							$"GDAL_PYTHON = [{GDAL_PYTHON}]\r\n" +
+							$"DELAY = [{DELAY}]\n" +
+							$"DISTANCE = [{DISTANCE}]\n" +
+							$"EQUAL_OPTION = [{EQUAL_OPTION}]\n" +
+							$"USE_INFLUX = [{USE_INFLUX}]\n" +
+							$"USE_SRTM = [{USE_SRTM}]\n" +
+							$"RADIUS = [{RADIUS}]\n" +
+							$"COUNT_OF_SUBS = [{COUNT_OF_SUBS}]\n" +
+							$"COEF_HEIGHT = [{COEF_HEIGHT}]\n" +
+							$"TILES_FOLDER = [{TILES_FOLDER}]\n" +
+							$"GDAL_PYTHON = [{GDAL_PYTHON}]\n" +
 							$"GDAL_PYSCRIPT = [{GDAL_PYSCRIPT}]";
 	}
 
@@ -250,7 +255,7 @@ class Program
 			double altitude = (double)altitudeObj;
 			logger.Info($"Altitude for topic {_topicID}: {altitude}");
 
-			object?[,] dataObj = dBTools.executeSelectTable($"SELECT Value_Data, Time_Data FROM Data WHERE ID_Topic = {_topicID} ORDER BY Time_Data ASC;");
+			object?[,] dataObj = dBTools.executeSelectTable($"SELECT Value_Data, Time_Data FROM Data WHERE ID_Topic = {_topicID} ORDER BY Time_Data ASC LIMIT {Program.COUNT_DATA};");
 			List<DataUnit> data = Enumerable.Range(0, dataObj.GetLength(0))
 				.Select(i => new DataUnit(
 					Convert.ToDouble(dataObj[i, 0]), // Value_Data
@@ -265,20 +270,24 @@ class Program
 				List<DataUnit> predictedEvents = movingAverage.CalculateEmaSmooth(data, SMOOTHING, SLOPE_FACTOR);
 				if (predictedEvents.Count >= 10)
 				{
-					List<DataUnit> lastPredict = predictedEvents.TakeLast(3).ToList();
+					List<DataUnit> lastPredict = predictedEvents.TakeLast(4).ToList();
 					List<DataUnit> lastFact = data.TakeLast(2).ToList();
-					logger.Info($"Predicted values for topic {_topicID}: p1={lastPredict[0]}, p2={lastPredict[1]}, p3={lastPredict[2]}");
-					logger.Info($"Actual values for topic {_topicID}: f1={lastFact[0]}, f2={lastFact[1]}");
+					logger.Info($"Predicted values for topic {_topicID}: p0 = {lastPredict[0].valueData}, p1 = {lastPredict[1].valueData}, p2 = {lastPredict[2].valueData}, p3 = {lastPredict[3].valueData}");
+					logger.Info($"Actual values for topic {_topicID}: f1 = {lastFact[0].valueData}, f2 = {lastFact[1].valueData}");
 
-					if (lastPredict[2].valueData > altitude && lastFact[1].valueData > lastFact[0].valueData)
+					double metric = Metrics.CalculateMAE(data, predictedEvents);
+					double p3baff = Convert.ToDouble(lastPredict[3].valueData ?? 0.0) + metric;
+					logger.Info($"Metric = {metric}, p3_buffed = {p3baff}");
+					//if (lastPredict[2].valueData > altitude && lastFact[1].valueData > lastFact[0].valueData)
+					if (lastFact[1].valueData >= lastPredict[0].valueData && p3baff >= altitude)
 					{
-						result = Convert.ToDouble(lastPredict[2].valueData);
-						logger.Info($"Conditions met for topic {_topicID}: p3={lastPredict[2].valueData} > alt={altitude} and f1={lastFact[0].valueData} > f2={lastFact[1].valueData}");
+						result = Convert.ToDouble(lastPredict[3].valueData);
+						logger.Info($"Conditions met for topic {_topicID}: f1 = {lastFact[1].valueData} >= p0 = {lastPredict[0].valueData} and p3_buffed = {p3baff} >= altitude = {altitude}");
 					}
 					else
 					{
 						result = -1;
-						logger.Info($"Conditions not met for topic {_topicID}: p3={lastPredict[2].valueData} > alt={altitude} and f1={lastFact[0].valueData} > f2={lastFact[1].valueData}");
+						logger.Info($"Conditions not met for topic {_topicID}: f1 = {lastFact[1].valueData} >= p0 = {lastPredict[0].valueData} and p3_buffed = {p3baff} >= altitude = {altitude}");
 					}
 				}
 				else

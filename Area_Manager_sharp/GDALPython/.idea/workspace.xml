@@ -5,11 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="57efd31f-ca72-4ce4-b8f4-fe8f131a60ec" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../Area_Manager_sharp.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../Area_Manager_sharp.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ElevationAnalyzerFolder/ElevationAnalyzer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../ElevationAnalyzerFolder/ElevationAnalyzer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../GDALAnalyzerFolder/GDALPython.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../GDALAnalyzerFolder/GDALPython.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Program.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -69,6 +65,8 @@
       <workItem from="1737818118107" duration="3120000" />
       <workItem from="1737824616377" duration="5224000" />
       <workItem from="1737927458724" duration="660000" />
+      <workItem from="1739823763967" duration="14000" />
+      <workItem from="1741117901064" duration="6000" />
     </task>
     <servers />
   </component>

@@ -25,6 +25,7 @@ namespace Area_Manager_sharp.MovingAverage
 			double alpha = smoothing / (_windowSize + 1);
 			double ema = data[0].valueData ?? 0.0;
 			List<DataUnit> emaData = new List<DataUnit>();
+			emaData.Add(new DataUnit(null, data[0].timeData));
 
 			for (int i = 0; i < data.Count; i++)
 			{
@@ -58,7 +59,7 @@ namespace Area_Manager_sharp.MovingAverage
 			{
 				DataUnit dataUnit = new DataUnit
 					(
-						lastEma + slope * (i + slopeFactor),
+						lastEma + slope * ((i + 1) * slopeFactor),
 						lastDates.Last().timeData + (long)(averageTimeInterval.TotalSeconds * (i + 1))
 					);
 				emaData.Add(dataUnit);
