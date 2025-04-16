@@ -25,6 +25,7 @@ class Program
 	private static double WINDOW_SIZE = 7;
 	private static double SMOOTHING = 2;
 	private static double SLOPE_FACTOR = 2;
+	private static double ADD_NUMBER = 0.5;
 	
 	private static int DELAY = 300;
 	private static double DISTANCE = 200;
@@ -58,6 +59,7 @@ class Program
 			WINDOW_SIZE = Convert.ToDouble(data["MovingAverage"]["WINDOW_SIZE"]);
 			SMOOTHING = Convert.ToDouble(data["MovingAverage"]["SMOOTHING"]);
 			SLOPE_FACTOR = Convert.ToDouble(data["MovingAverage"]["SLOPE_FACTOR"]);
+			ADD_NUMBER = Convert.ToDouble(data["MovingAverage"]["ADD_NUMBER"]);
 
 			DELAY = Convert.ToInt32(data["ElevationAnalyzer"]["DELAY"]);
 			DISTANCE = Convert.ToDouble(data["ElevationAnalyzer"]["DISTANCE"]);
@@ -86,6 +88,7 @@ class Program
 			data["MovingAverage"]["WINDOW_SIZE"] = WINDOW_SIZE.ToString();
 			data["MovingAverage"]["SMOOTHING"] = SMOOTHING.ToString();
 			data["MovingAverage"]["SLOPE_FACTOR"] = SLOPE_FACTOR.ToString();
+			data["MovingAverage"]["ADD_NUMBER"] = ADD_NUMBER.ToString();
 
 			data.Sections.AddSection("ElevationAnalyzer");
 			data["ElevationAnalyzer"]["DELAY"] = DELAY.ToString();
@@ -111,6 +114,7 @@ class Program
 							$"WINDOW_SIZE = [{WINDOW_SIZE}]\n" +
 							$"SMOOTHING = [{SMOOTHING}]\n" +
 							$"SLOPE_FACTOR = [{SLOPE_FACTOR}]\n" +
+							$"ADD_NUMBER = [{ADD_NUMBER}]\n" +
 
 							$"DELAY = [{DELAY}]\n" +
 							$"DISTANCE = [{DISTANCE}]\n" +
@@ -260,7 +264,7 @@ class Program
 				.Select(i => new DataUnit(
 					Convert.ToDouble(dataObj[i, 0]), // Value_Data
 					Convert.ToInt64(dataObj[i, 1]) // Time_Data
-				)).ToList();
+				)).Reverse().ToList();
 
 			if (data.Count > 2)
 			{
@@ -277,17 +281,18 @@ class Program
 
 					double metric = Metrics.CalculateMAE(data, predictedEvents);
 					double p3baff = Convert.ToDouble(lastPredict[3].valueData ?? 0.0) + metric;
-					logger.Info($"Metric = {metric}, p3_buffed = {p3baff}");
+					double? buffNumber = lastPredict[0].valueData + ADD_NUMBER;
+					logger.Info($"Metric = {metric}, p3_buffed = {p3baff}, buffNumber = {buffNumber}");
 					//if (lastPredict[2].valueData > altitude && lastFact[1].valueData > lastFact[0].valueData)
-					if (lastFact[1].valueData >= (lastPredict[0].valueData + 1.0) && p3baff >= altitude) //F_last > (E_last + 1) & height <= (predict3 + MAE)
+					if (lastFact[1].valueData >= buffNumber && p3baff >= altitude) //F_last > (E_last + buffNumber) & (predict3 + MAE) >= height 
 					{
 						result = Convert.ToDouble(lastPredict[3].valueData);
-						logger.Info($"Conditions met for topic {_topicID}: f1 = {lastFact[1].valueData} >= p0 = {lastPredict[0].valueData} and p3_buffed = {p3baff} >= altitude = {altitude}.");
+						logger.Info($"Conditions met for topic {_topicID}: f1 = {lastFact[1].valueData} >= buffNumber = {buffNumber} and p3_buffed = {p3baff} >= altitude = {altitude}.");
 					}
 					else
 					{
 						result = -1;
-						logger.Info($"Conditions not met for topic {_topicID}: f1 = {lastFact[1].valueData} >= p0 = {lastPredict[0].valueData} and p3_buffed = {p3baff} >= altitude = {altitude}.");
+						logger.Info($"Conditions not met for topic {_topicID}: f1 = {lastFact[1].valueData} >= buffNumber = {buffNumber} and p3_buffed = {p3baff} >= altitude = {altitude}.");
 					}
 				}
 				else
