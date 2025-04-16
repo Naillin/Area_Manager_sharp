@@ -255,7 +255,7 @@ class Program
 			double altitude = (double)altitudeObj;
 			logger.Info($"Altitude for topic {_topicID}: {altitude}");
 
-			object?[,] dataObj = dBTools.executeSelectTable($"SELECT Value_Data, Time_Data FROM Data WHERE ID_Topic = {_topicID} ORDER BY Time_Data ASC LIMIT {Program.COUNT_DATA};");
+			object?[,] dataObj = dBTools.executeSelectTable($"SELECT Value_Data, Time_Data FROM Data WHERE ID_Topic = {_topicID} ORDER BY Time_Data DESC LIMIT {Program.COUNT_DATA};");
 			List<DataUnit> data = Enumerable.Range(0, dataObj.GetLength(0))
 				.Select(i => new DataUnit(
 					Convert.ToDouble(dataObj[i, 0]), // Value_Data
@@ -272,22 +272,22 @@ class Program
 				{
 					List<DataUnit> lastPredict = predictedEvents.TakeLast(4).ToList();
 					List<DataUnit> lastFact = data.TakeLast(2).ToList();
-					logger.Info($"Predicted values for topic {_topicID}: p0 = {lastPredict[0].valueData}, p1 = {lastPredict[1].valueData}, p2 = {lastPredict[2].valueData}, p3 = {lastPredict[3].valueData}");
-					logger.Info($"Actual values for topic {_topicID}: f1 = {lastFact[0].valueData}, f2 = {lastFact[1].valueData}");
+					logger.Info($"Predicted values for topic {_topicID}: p0 = {lastPredict[0].valueData}, p1 = {lastPredict[1].valueData}, p2 = {lastPredict[2].valueData}, p3 = {lastPredict[3].valueData}.");
+					logger.Info($"Actual values for topic {_topicID}: f1 = {lastFact[0].valueData}, f2 = {lastFact[1].valueData}.");
 
 					double metric = Metrics.CalculateMAE(data, predictedEvents);
 					double p3baff = Convert.ToDouble(lastPredict[3].valueData ?? 0.0) + metric;
 					logger.Info($"Metric = {metric}, p3_buffed = {p3baff}");
 					//if (lastPredict[2].valueData > altitude && lastFact[1].valueData > lastFact[0].valueData)
-					if (lastFact[1].valueData >= lastPredict[0].valueData && p3baff >= altitude)
+					if (lastFact[1].valueData >= (lastPredict[0].valueData + 1.0) && p3baff >= altitude) //F_last > (E_last + 1) & height <= (predict3 + MAE)
 					{
 						result = Convert.ToDouble(lastPredict[3].valueData);
-						logger.Info($"Conditions met for topic {_topicID}: f1 = {lastFact[1].valueData} >= p0 = {lastPredict[0].valueData} and p3_buffed = {p3baff} >= altitude = {altitude}");
+						logger.Info($"Conditions met for topic {_topicID}: f1 = {lastFact[1].valueData} >= p0 = {lastPredict[0].valueData} and p3_buffed = {p3baff} >= altitude = {altitude}.");
 					}
 					else
 					{
 						result = -1;
-						logger.Info($"Conditions not met for topic {_topicID}: f1 = {lastFact[1].valueData} >= p0 = {lastPredict[0].valueData} and p3_buffed = {p3baff} >= altitude = {altitude}");
+						logger.Info($"Conditions not met for topic {_topicID}: f1 = {lastFact[1].valueData} >= p0 = {lastPredict[0].valueData} and p3_buffed = {p3baff} >= altitude = {altitude}.");
 					}
 				}
 				else
