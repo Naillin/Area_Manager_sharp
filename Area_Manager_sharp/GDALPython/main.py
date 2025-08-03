@@ -65,7 +65,6 @@ class GDALInterface(object):
 		try:
 			if (transform):
 				# get coordinate of the raster
-				# Исправленный вызов TransformPoint
 				xgeo, ygeo, zgeo = self.coordinate_transform.TransformPoint(lon, lat, 0)
 
 				# convert it to pixel/line on band
@@ -215,8 +214,8 @@ if not os.path.exists(fifo_from_python):
 
 def main():
 	# Инициализация интерфейса
-	tiles_folder = '/home/Naillin/Progs/MQTT_progs/Area_Manager-sharp/GDALPython/tilesFolder'  # Укажите путь к вашим тайлам
-	summary_file = '/home/Naillin/Progs/MQTT_progs/Area_Manager-sharp/GDALPython/tilesFolder/summaryFile.json'  # Укажите путь к вашему summary.json
+	tiles_folder = '/home/Naillin/Progs/MQTT_progs/Area_Manager-sharp/GDALPython/tilesFolder'  # Путь к тайлам
+	summary_file = '/home/Naillin/Progs/MQTT_progs/Area_Manager-sharp/GDALPython/tilesFolder/summaryFile.json'  # Путь к summary.json
 	tile_interface = GDALTileInterface(tiles_folder, summary_file)
 
 	if not tile_interface.has_summary_json():

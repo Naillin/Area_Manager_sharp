@@ -1,0 +1,153 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Area_Manager_sharp.DBTools.DBBase">
+    <Position X="17.25" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgAAAgAEABACAAAAAAAAAAAAAIAIAAAAAAAAIAA=</HashCode>
+      <FileName>DBTools\DBBase.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Area_Manager_sharp.DBTools.DBTools">
+    <Position X="19" Y="4.25" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAABgAAAAAMAAACAAAIAAAAABAgAAAAAAgAAABIAAI=</HashCode>
+      <FileName>DBTools\DBTools.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.ElevationAnalyzerFolder.AreaUnits.Island">
+    <Position X="3.75" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgAAEAAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>ElevationAnalyzerFolder\AreaUnits\Island.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.ElevationAnalyzerFolder.AreaUnits.PointsPack">
+    <Position X="5.5" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAQAAABAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ElevationAnalyzerFolder\AreaUnits\PointsPack.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.ElevationAnalyzer.ElevationResponse">
+    <Position X="5.5" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ElevationAnalyzerFolder\ElevationAnalyzer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.ElevationAnalyzer.Result">
+    <Position X="5.5" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAEAAAAAAAAAIAAAAAEAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>ElevationAnalyzerFolder\ElevationAnalyzer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.ElevationAnalyzer.ElevationAnalyzer">
+    <Position X="2" Y="2.25" Width="1.5" />
+    <NestedTypes>
+      <Struct Name="Area_Manager_sharp.ElevationAnalyzer.ElevationAnalyzer.CheckPoint" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>ElevationAnalyzerFolder\ElevationAnalyzer.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Struct>
+      <Delegate Name="Area_Manager_sharp.ElevationAnalyzer.ElevationAnalyzer.ComparisonOperator" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>ElevationAnalyzerFolder\ElevationAnalyzer.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Delegate>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAgQEAgAGAAACABAAAAAEAgEACAAQAIAAAIAAIoA=</HashCode>
+      <FileName>ElevationAnalyzerFolder\ElevationAnalyzer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.ElevationAnalyzer.Coordinate">
+    <Position X="3.75" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAEAAAAAEgIAIAAAAAAAAAIAAAAAABAAAEAA=</HashCode>
+      <FileName>ElevationAnalyzerFolder\Сoordinate.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.GDALAnalyzerFolder.GDALInterface" BaseTypeListCollapsed="true">
+    <Position X="10.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAgAIAAQAYAAQAAAACAABgAAAAAAAABAA=</HashCode>
+      <FileName>GDALAnalyzerFolder\GDALInterface.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Area_Manager_sharp.GDALAnalyzerFolder.GDALPython">
+    <Position X="9" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgAACAAEAAICAAAgAgQQCIAAABAAAAAAAAAgAAA=</HashCode>
+      <FileName>GDALAnalyzerFolder\GDALPython.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.GDALAnalyzerFolder.GDALTileManager" BaseTypeListCollapsed="true">
+    <Position X="12.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAKBAAAAAACAAAAQAAAAAAAAAACBAAABAAAA=</HashCode>
+      <FileName>GDALAnalyzerFolder\GDALTileManager.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Area_Manager_sharp.GDALAnalyzerFolder.TileInfo">
+    <Position X="14.25" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAIAIAAAAAAgAAgAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>GDALAnalyzerFolder\GDALTileManager.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.GDALAnalyzerFolder.LRUCache&lt;TKey, TValue&gt;" BaseTypeListCollapsed="true">
+    <Position X="14.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAKAAAABAAAAAAAQAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>GDALAnalyzerFolder\LRUCache.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="Area_Manager_sharp.MovingAverage.DataUnit">
+    <Position X="9.5" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAACAAAAAAEAAAAAAAAAAAAAAEAAAAAAAAAAAA=</HashCode>
+      <FileName>MovingAverageFolder\DataUnit.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.MovingAverage.MovingAverage">
+    <Position X="7.75" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgAAAAAEAAQCAAAAAAAAAACAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>MovingAverageFolder\MovingAverage.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Area_Manager_sharp.MovingAverageFolder.Metrics">
+    <Position X="11.25" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAgAAAAAAgAAAAAAAAAAAAAAAAAIAAAAAAAAgAA=</HashCode>
+      <FileName>MovingAverageFolder\Metrics.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="Area_Manager_sharp.DBTools.ColumnsNames">
+    <Position X="21.25" Y="4.25" Width="1.5" />
+    <NestedTypes>
+      <Enum Name="Area_Manager_sharp.DBTools.ColumnsNames.BDKeys" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>DBTools\ColumnNames.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAEAEAAAQAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>DBTools\ColumnNames.cs</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Interface Name="Area_Manager_sharp.DBTools.IDBBase">
+    <Position X="21.25" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAgAAABAAAAAAAAAAAAAAAIAAAAAAAAAAIAA=</HashCode>
+      <FileName>DBTools\IDBBase.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
