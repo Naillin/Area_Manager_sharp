@@ -190,8 +190,10 @@ namespace Area_Manager_sharp.DBTools
 		/// </summary>
 		/// <param name="table">Целевая таблица.</param>
 		/// <param name="value">Принимает массив значений.</param>
-		public void executeInsert(string table, string[] value)
+		/// <returns></returns>
+		public int executeInsert(string table, string[] value)
 		{
+			int result = -1;
 			ColumnsNames[] columnsNamesMassive = columnsNames(table); // имена столбцов
 			string columns = string.Empty;
 			for (int i = 1; i < columnsNamesMassive.Length; i++)
@@ -210,10 +212,12 @@ namespace Area_Manager_sharp.DBTools
 				sqlConnection.Open();
 				using (SqliteCommand command = new SqliteCommand(@sql, sqlConnection))
 				{
-					command.ExecuteNonQuery();
+					result = command.ExecuteNonQuery();
 				}
 				sqlConnection.Close();
 			}
+
+			return result;
 		}
 
 		/// <summary>
@@ -221,24 +225,18 @@ namespace Area_Manager_sharp.DBTools
 		/// </summary>
 		/// <param name="table">Целевая таблица.</param>
 		/// <param name="value">Принимает стороку значений разделенных знаком ';'. Пример: "column1=value1;column2=value2;column3=value3;".</param>
-		public void executeInsert(string table, string value)
+		/// <returns></returns>
+		public int executeInsert(string table, string value)
 		{
-			if (value.Substring(value.Length - 1) == ";")
-			{
-				value = value.Remove(value.Length - 1);
-			}
-			string[] valueMass = value.Split(';');
+			int result = -1;
+			if (value.EndsWith(";"))
+				value = value[..^1]; // убираем последний символ
 
-			//ColumnsNames[] columnsNamesMassive = columnsNames(table); // имена столбцов
-			string columns = string.Empty;
-			string values = string.Empty;
-			for (int i = 0; i < valueMass.Length; i++)
-			{
-				columns = columns + valueMass[i].Split('=')[0] + ", ";
-				values = values + valueMass[i].Split('=')[1] + ", ";
-			}
-			columns = columns.Remove(columns.Length - 2);
-			values = values.Remove(columns.Length - 2);
+			var valueMass = value.Split(';');
+
+			var columns = string.Join(", ", valueMass.Select(v => v.Split('=')[0]));
+			var values = string.Join(", ", valueMass.Select(v => v.Split('=')[1]));
+
 
 			string sql = $"insert into {table} ({columns}) values ({values});";
 
@@ -247,10 +245,12 @@ namespace Area_Manager_sharp.DBTools
 				sqlConnection.Open();
 				using (SqliteCommand command = new SqliteCommand(@sql, sqlConnection))
 				{
-					command.ExecuteNonQuery();
+					result = command.ExecuteNonQuery();
 				}
 				sqlConnection.Close();
 			}
+
+			return result;
 		}
 
 		/// <summary>

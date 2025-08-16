@@ -214,8 +214,8 @@ if not os.path.exists(fifo_from_python):
 
 def main():
 	# Инициализация интерфейса
-	tiles_folder = '/home/Naillin/Progs/MQTT_progs/Area_Manager-sharp/GDALPython/tilesFolder'  # Путь к тайлам
-	summary_file = '/home/Naillin/Progs/MQTT_progs/Area_Manager-sharp/GDALPython/tilesFolder/summaryFile.json'  # Путь к summary.json
+	tiles_folder = '/home/Naillin/Progs/MQTT_progs/Area_Manager-sharp/GDALPython/tilesFolder'
+	summary_file = '/home/Naillin/Progs/MQTT_progs/Area_Manager-sharp/GDALPython/tilesFolder/summaryFile.json'
 	tile_interface = GDALTileInterface(tiles_folder, summary_file)
 
 	if not tile_interface.has_summary_json():
@@ -223,39 +223,38 @@ def main():
 	else:
 		tile_interface.read_summary_json()
 
-	try:
-		# Бесконечный цикл для обработки запросов
-		while True:
-			# Чтение координат из FIFO
-			with open(fifo_to_python, 'r') as fifo_in:
+	# Открываем FIFO один раз
+	with open(fifo_to_python, 'r') as fifo_in, open(fifo_from_python, 'w') as fifo_out:
+		try:
+			while True:
 				line = fifo_in.readline().strip()
 				if not line:
-					break  # Если ввод пустой, завершаем работу
+					continue  # ждем новые данные, не выходим
 
-				if line == "EXIT":  # Команда для завершения работы
+				if line == "EXIT":
 					write_log("Exiting...")
 					break
 
 				try:
 					lat, lon = map(float, line.split(','))
 					height = tile_interface.lookup(lat, lon)
-					if height is None:  # Если высота не найдена
+					if height is None:
 						write_log(f'Height not found for coordinates: ({lat}, {lon})')
-						result = "NULL"  # Возвращаем специальное значение для NULL
+						result = "NULL"
 					else:
 						write_log(f'Height for coordinates: ({lat}, {lon}) = {height}')
-						result = str(height)  # Возвращаем высоту
+						result = str(height)
 				except Exception as e:
-					write_log(f'Error processing coordinates: ({lat}, {lon}) - {e}')
-					result = f"ERROR: {e}"  # Возвращаем сообщение об ошибке
+					write_log(f'Error processing coordinates input "{line}" - {e}')
+					result = f"ERROR: {e}"
 
-				# Отправка результата в FIFO
-				with open(fifo_from_python, 'w') as fifo_out:
-					fifo_out.write(result + '\n')
-	finally:
-		# Очистка ресурсов перед завершением
-		tile_interface.close_all_interfaces()
-		write_log("Python process resources cleaned up.")
+				# пишем в FIFO (и сразу flush, чтобы читатель получил данные)
+				fifo_out.write(result + '\n')
+				fifo_out.flush()
+
+		finally:
+			tile_interface.close_all_interfaces()
+			write_log("Python process resources cleaned up.")
 
 if __name__ == "__main__":
 	main()

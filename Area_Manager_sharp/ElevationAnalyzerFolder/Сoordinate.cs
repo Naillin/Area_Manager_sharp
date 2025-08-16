@@ -1,5 +1,4 @@
-﻿
-namespace Area_Manager_sharp.ElevationAnalyzer
+﻿namespace Area_Manager_sharp.ElevationAnalyzerFolder
 {
 	internal class Coordinate
 	{

@@ -8,11 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GDAL" Version="3.10.0" />
-    <PackageReference Include="GDAL.Native" Version="3.10.0" />
-    <PackageReference Include="GDAL.Plugins" Version="3.10.0" />
     <PackageReference Include="ini-parser" Version="2.5.2" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.1" />
+    <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NLog" Version="5.3.4" />
   </ItemGroup>

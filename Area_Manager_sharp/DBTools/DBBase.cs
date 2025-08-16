@@ -54,7 +54,7 @@ namespace Area_Manager_sharp.DBTools
 		/// <returns></returns>
 		public int countRows(string table, string conditions)
 		{
-			int count = 0;
+			int count = -1;
 			string sql = $"select count(*) from {table} {conditions};";
 			using (SqliteConnection sqlConnection = new SqliteConnection(_connectionString))
 			{
